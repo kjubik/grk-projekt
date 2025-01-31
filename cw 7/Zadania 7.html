@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Zadania 7</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<h1 id="normal-mapping">Normal Mapping</h1>
+<p>W tej części będziemy dalej modyfikować shadery <strong>shader_5_tex</strong> poprzez implementację normal mappingu.</p>
+<p>Obliczenia dla map normalnych należy wykonywać w przestrzeni stycznych. Przestrzeń styczna jest wyliczana dla każdego punktu w obiekcie. Jej celem jest takie przekształcenie przestrzeni, żeby wektor normalny był wektorem jednostkowym (0,1,0).</p>
+<p>Do wyliczenia przestrzeni stycznej potrzebujemy dla każdego wierzchołka oprócz wektora normalnego wektor styczny i bistyczny (<em>tangent</em> i <em>bitangent</em>). Są one wyliczane przez bibliotekę <code>Assimp</code>.</p>
+<h3 id="wykonaj-kopię-shaderów-shader_4_tex.vert-shader_4_tex.frag">Wykonaj kopię shaderów shader_4_tex.vert shader_4_tex.frag</h3>
+<h3 id="przenieś-obliczenia-światła-do-przestrzeni-stycznej.">Przenieś obliczenia światła do przestrzeni stycznej.</h3>
+<ol type="1">
+<li><p>Oblicz macierz <strong>TBN</strong>.</p>
+<p>Macierz <strong>TBN</strong> to macierz 3x3 wyznaczana przez wektory <em>tangent</em>, <em>bitangent</em> i <em>normal</em>, służy do przenoszenia wektorów z przestrzeni świata do przestrzeni stycznej.</p>
+<ol type="1">
+<li>W <strong>vertex shaderze</strong> przekrztałć wektory <code>vertexNormal</code>, <code>vertexTangent</code> i <code>vertexBitangent</code> do przestrzeni świata (przemnóż macierz modelu przez te wektory, tak jak to robiliśmy wcześniej z wektorem normalnym, z uwzględnieniem zmiennej w=0) i zapisz wyniki odpowiednio w zmiennych <code>normal</code>, <code>tangent</code> i <code>bitangent</code>.
+<ol type="1">
+<li>Stwórz macierz 3x3 TBN jako transpose(mat3(tangent, bitangent, normal)). Macierz transponujemy, aby szybko uzyskać jej odwrotność (możemy tak zrobić przy założeniu, ze jest ortogonalna).</li>
+</ol></li>
+</ol></li>
+</ol>
+<ol start="2" type="1">
+<li>Przenieś wektor światła i wektor widoku do przestrzeni stycznych
+<ol type="1">
+<li><p>Musimy przekształcić wektor światła (L) i wektor widoku (V) do przestrzeni stycznych. Zrobimy to w vertex shaderze. W tym celu przenieś potrzebne dane dotyczące światła i kamery (uniformy <code>lightPos</code> i <code>cameraPos</code>) z <strong>fragment shadera</strong> do <strong>vertex shadera.</strong></p></li>
+<li><p>Oblicz wektor <code>viewDir</code> jako znormalizowana różnice <code>cameraPos</code> i <code>fragPos</code> (tu jeszcze działamy w przestrzeni świata). Analogicznie oblicz <code>lightDir</code> jako różnicę <code>lightPos</code> i <code>fragPos</code></p></li>
+<li><p>Przekształć wektory <code>viewDir</code> i <code>lightDir</code> do przestrzeni stycznej mnożąc je przez macierz <strong>TBN</strong>. Wynik zapisz w zmiennych<code>viewDirTS</code> i <code>lightDirTS</code> odpowiednio.</p></li>
+<li><p>Przekaż <code>viewDirTS</code> i <code>lightDirTS</code> do fragment shadera. (zadeklaruj je jako zmienne <code>out</code>)</p>
+<blockquote>
+<p>(Sufiks TS oznacza tangent space. Ważne jest, aby oznaczać (np. dopisując coś do nazwy zmiennej) w jakiej przestrzeni znajdują się używane wektory, tak aby poprawnie wykonywać obliczenia. Trzeba zawsze zwracać uwagę na to, w jakiej przestrzeni działamy.)</p>
+</blockquote></li>
+</ol></li>
+<li>Przekształć <strong>fragment shader</strong>, by obsługiwał <strong>tangent space</strong>
+<ol type="1">
+<li>Nie potrzebujemy już we <strong>fragment shaderze</strong> informacji na temat pozycji fragmentu i wektora normalnego geometrii, skasuj wiec zmienne przekazujące te wektory pomiędzy shaderami.</li>
+<li>wektora <code>lightDir</code> powinniśmy użyć wektora <code>lightDirTS</code> (należy go dodatkowo znormalizować), a jako wektor widoku V powinniśmy użyć wektora <code>viewDirTS</code> (również należy go znormalizować). Jako wektora N użyj na razie wektora vec3(0,0,1).</li>
+</ol></li>
+</ol>
+<p>Efekt finalny powinien wyglądać tak samo, jak przed jakąkolwiek zmianą. Następnym krokiem będzie wykorzystanie map normalnych.</p>
+<h3 id="wykorzystaj-normalmapy">Wykorzystaj normalmapy</h3>
+<ol type="1">
+<li>Chcemy wczytywać normalne z tekstury, w tym celu dodaj we <strong>fragment shaderze</strong> dodatkowy sampler do czytania map normalnych, nazwij go <code>normalSampler</code>. Pobierz z niego wektor normalny analogicznie, jak czytamy kolor zwykłej tekstury z samplera <code>textureSampler</code> i zapisz go w zmiennej <code>N</code>.
+<ol start="2" type="1">
+<li>Ponieważ w teksturze wartości są w przedziale <span class="math inline">\([0,1]\)</span>, musimy jeszcze przekształcić je do przedziału <span class="math inline">\([-1,1]\)</span>. W tym celu przemnóż wektor N przez 2 i odejmij 1. Na koniec warto jeszcze znormalizować wektor normalny, aby uniknąć błędów związanych z precyzja lub kompresja tekstury.</li>
+<li>Wczytaj pliki zawierające mapy normalnych w kodzie C++ W tym celu załaduj przy użyciu funkcji <code>Core::LoadTexture</code> mapy normalnych dla wszystkich modeli. Maja one taką samą nazwę jak zwykle tekstury, tyle że z suffiksem "_normals".</li>
+<li>Zmodyfikuj na koniec funkcje <code>drawObjectTexture</code>. Dodaj do niej nowy argument <code>GLuint normalmapId</code>, który będzie służył do przekazywania id tekstury zawierającej mapę normalnych. Przy użyciu funkcji <code>Core::SetActiveTexture</code> załaduj <code>normalmapId</code> jako <code>normalSampler</code> i ustaw jednostkę teksturowania nr 1. Argument odpowiadający za normalne w miejscach wywołania funkcji <code>drawObjectTexture</code>.</li>
+</ol></li>
+</ol>
+<h3 id="zadanie">Zadanie*</h3>
+<p>Ustaw mapy normalne do statku planety i księżyca (lub przynajmniej 3 obiektów, jeżeli rysujesz swoją scenę). Wykorzystaj multitexturing na statku, musisz w takim wypadku mieszać zarówno tekstury koloru i normalanych.</p>
+<h2 id="skybox">SkyBox</h2>
+<p>Cubemapy są specjalnym rodzajem tekstur. Zawieją one 6 tekstur, każda z niej odpowiada za inną ścianę sześcianu. Nie służy ona do teksturowania zwykłego sześcianu, pozwala ona bowiem próbkować po wektorze kierunku. To znaczy, możemy o tym myśleć jak o kostce, w której środku się znaleźliśmy, co obrazuje poniższy rysunek. W przeciwieństwie do zwykłych tekstur samplujemy ją nie za pomocą dwuwymiarowych współrzędnych UV, ale za pomocą wektora trójwymiarowego, który odpowiada kierunkowi promienia. <img src="./img/cubemaps_sampling.png" /> Jednym z zastosowań Cubemapy jest wyświetlanie skyboxa, czyli dalekiego tła dla sceny. Może to być na przykład rozgwieżdżone niebo z górami na horyzoncie albo obraz dalekiej galaktyki.</p>
+<h3 id="ładowanie-cubemapy">Ładowanie cubemapy</h3>
+<p>Cubemapę generujemy podobnie jak inne tekstury, ale przy bindowaniu należy podać <code>GL_TEXTURE_CUBE_MAP</code>.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>glGenTextures(<span class="dv">1</span>, &amp;textureID);</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);</span></code></pre></div>
+<p>Skoro składa się ona z 6 tekstur, to należy każdą z nich załadować za pomocą <code>void glTexImage2D(    GLenum target, ...)</code> <code>taget</code> wskazuje którą z tekstur ładujemy. Możliwe wartości rozpisane są w tabeli poniżej |Layer number|Texture target | Orientation| |—-|——————–:|———–:| |0|<code>GL_TEXTURE_CUBE_MAP_POSITIVE_X</code> | Right | |1|<code>GL_TEXTURE_CUBE_MAP_NEGATIVE_X</code>|Left| |2|<code>GL_TEXTURE_CUBE_MAP_POSITIVE_Y</code>|Top| |3|<code>GL_TEXTURE_CUBE_MAP_NEGATIVE_Y</code>|Bottom| |4|<code>GL_TEXTURE_CUBE_MAP_POSITIVE_Z</code>|Back| |5|<code>GL_TEXTURE_CUBE_MAP_NEGATIVE_Z</code>|Front|</p>
+<p>Możemy je ładować w pętli biorąc za kolejne targety <code>GL_TEXTURE_CUBE_MAP_POSITIVE_X+i</code>, ale należy pamiętać o powyższej kolejności. Poniższy kod ładuje do wszystkich 6 ścian tę samą teksturę, która znajduje się pod <code>filepath</code>.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> w, h;</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="dt">unsigned</span> <span class="dt">char</span> *data;  </span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(<span class="dt">unsigned</span> <span class="dt">int</span> i = <span class="dv">0</span>; i &lt; <span class="dv">6</span>; i++)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">unsigned</span> <span class="dt">char</span>* image = SOIL_load_image(filepath, &amp;w, &amp;h, <span class="dv">0</span>, SOIL_LOAD_RGBA);</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    glTexImage2D(</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, </span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        <span class="dv">0</span>, GL_RGBA, w, h, <span class="dv">0</span>, GL_RGBA, GL_UNSIGNED_BYTE, data</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    );</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>Na koniec pozostaje ustawić parametry opisujące zachowanie tekstury:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);  </span></code></pre></div>
+<h3 id="zadanie-1">Zadanie</h3>
+<p>Napisz funkcję, która będzie ładować cubmapę bazującą na tablicy 6 stringów i załaduj do niej tekstury z foldera <code>skybox</code>.</p>
+<h3 id="rysowanie-skyboxa">Rysowanie skyboxa</h3>
+<p>Skybox jest sześcianem, wewnątrz którego zamieszamy naszą scenę, przedstawia on dalekie tło, dzięki temu dostajemy iluzję głębi i przestrzeni. Do tego potrzebujemy narysować sześcian i narysować go odpowiednim shaderem. Rysowanie jest bardzo proste, polega wyłącznie na wyświetleniu koloru tekstury. Aby próbkować, teksturę potrzebujemy przesłać pozycję w przestrzeni modelu do shadera fragmentów.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#</span><span class="er">version 430 core</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>layout(location = <span class="dv">0</span>) in vec3 vertexPosition;</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>uniform mat4 transformation;</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>out vec3 texCoord;</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> main()</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    texCoord = vertexPosition;</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    gl_Position = transformation * vec4(vertexPosition, <span class="fl">1.0</span>);</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<blockquote>
+<p>shader_skybox.vert</p>
+</blockquote>
+<p>W shaderze fragmentów wystarczy odebrać pozycję i próbkować za jej pomocą teksturę.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#</span><span class="er">version 430 core</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>uniform samplerCube skybox;</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>in vec3 texCoord;</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>out vec4 out_color;</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> main()</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    out_color = texture(skybox,texCoord);</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<blockquote>
+<p>shader_skybox.frag</p>
+</blockquote>
+<h3 id="zadanie-2">Zadanie</h3>
+<p>W modelach znajduje się <code>cube.obj</code>, załaduj go i narysuj shaderami <code>shader_skybox.vert</code> i <code>shader_skybox.vert</code>. Pamiętaj o przesłaniu macierzy transformacji i tekstury skyboxa. Aktywujemy ją za pomocą instrukcji:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode c++"><code class="sourceCode cpp"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);</span></code></pre></div>
+<p>Skybox potencjalnie zasłania pewne obiekty, które są umieszczone trochę dalej. Wynika to z tego, że renderowanie go nadpisuje bufor głębokości. Dlatego narysuj cubemapę z wyłączonym testem głębokości na samym początku. Następnie włącz test głębokości dla reszty sceny. Dezaktywację wykonasz za pomocą instrukcji <code>glDisable(GL_DEPTH_TEST);</code>, natomiast aktywację za pomocą<code>glEnable(GL_DEPTH_TEST);</code>.</p>
+<p>Skybox reprezentuje obiekty, które są bardzo daleko. Tę iluzję możemy utracić, gdy kamera przysunie się zbyt blisko do skyboxa. Aby tego uniknąć, musimy tak umieścić skybox, by kamera zawsze była w jego środku. Przesuń skybox do pozycji kamery z użyciem macierzy translacji.</p>
+</body>
+</html>
