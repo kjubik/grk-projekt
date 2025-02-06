@@ -326,7 +326,7 @@ void init(GLFWwindow* window)
 	programEarth = shaderLoader.CreateProgram("shaders/shader_5_1_tex.vert", "shaders/shader_5_1_tex.frag");
 	programProcTex = shaderLoader.CreateProgram("shaders/shader_5_1_tex.vert", "shaders/shader_5_1_tex.frag");
 
-	loadModelToContext("./models/sphere.obj", sphereContext);
+	loadModelToContext("./models/sphere.objj", sphereContext);
 
 	initBoids(100);
 }
