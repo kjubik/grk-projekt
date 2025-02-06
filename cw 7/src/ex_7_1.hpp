@@ -17,27 +17,216 @@
 
 #include <vector>
 
+#include "simulation.h"
+#include "utils.h"
+#include "vertices.h"
 
-struct Boid {
+SimulationParams simulationParams;
+
+class Boid {
+public:
 	glm::vec3 position;
 	glm::vec3 velocity;
+	GLuint VAO;
 
-	Boid(glm::vec3 pos, glm::vec3 vel) : position(pos), velocity(vel) {}
+	static constexpr float MAX_SPEED = 2.0f;
+	static constexpr float MIN_SPEED = 0.2f;
+
+	Boid(glm::vec3 pos, glm::vec3 vel, GLuint vao) : position(pos), velocity(vel), VAO(vao) {}
+
+	void update(float deltaTime, const glm::vec3& acceleration) {
+		position += velocity * deltaTime;
+		velocity += acceleration * deltaTime;
+
+		applyBounceForceFromBoundingBox(deltaTime);
+		limitSpeed();
+	}
+
+	void draw(GLuint shaderProgram, GLuint modelLoc, const glm::mat4& view, const glm::mat4& projection, GLuint viewLoc, GLuint projectionLoc) {
+		glUseProgram(shaderProgram);
+
+		GLint inputColorLocation = glGetUniformLocation(shaderProgram, "inputColor");
+		glUniform3f(inputColorLocation, 1.0f, 0.0f, 0.0f);
+
+		glm::mat4 rotationMatrix = getRotationMatrixFromVelocity(velocity);
+
+		glm::mat4 model = glm::translate(glm::mat4(1.0f), position) * rotationMatrix;
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_TRIANGLES, 0, 18);
+		glBindVertexArray(0);
+	}
+private:
+	glm::mat4 getRotationMatrixFromVelocity(const glm::vec3& velocity) {
+		glm::vec3 forward = glm::vec3(0.0f, 1.0f, 0.0f);
+
+		glm::vec3 normalizedVelocity = glm::normalize(velocity);
+		if (glm::length(normalizedVelocity) < 1e-6f) {
+			throw std::invalid_argument("Velocity vector cannot be zero.");
+		}
+
+		if (glm::length(normalizedVelocity + forward) < 1e-6f) {
+			return glm::rotate(glm::mat4(1.0f), glm::pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f));
+		}
+
+		if (glm::length(glm::cross(forward, normalizedVelocity)) < 1e-6f) {
+			return glm::mat4(1.0f);
+		}
+
+		glm::vec3 rotationAxis = glm::normalize(glm::cross(forward, normalizedVelocity));
+
+		float cosTheta = glm::dot(forward, normalizedVelocity);
+		float theta = std::acos(glm::clamp(cosTheta, -1.0f, 1.0f));
+
+		glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), theta, rotationAxis);
+
+		return rotationMatrix;
+	}
+	void applyBounceForceFromBoundingBox(float deltaTime) {
+		glm::vec3 bounceForce(0.0f);
+
+		if (position.x < simulationParams.boundMin) {
+			bounceForce.x += simulationParams.bounceForce * (simulationParams.boundMin - position.x);
+		}
+		else if (position.x > simulationParams.boundMax) {
+			bounceForce.x -= simulationParams.bounceForce * (position.x - simulationParams.boundMax);
+		}
+
+		if (position.y < simulationParams.boundMin) {
+			bounceForce.y += simulationParams.bounceForce * (simulationParams.boundMin - position.y);
+		}
+		else if (position.y > simulationParams.boundMax) {
+			bounceForce.y -= simulationParams.bounceForce * (position.y - simulationParams.boundMax);
+		}
+
+		if (position.z < simulationParams.boundMin) {
+			bounceForce.z += simulationParams.bounceForce * (simulationParams.boundMin - position.z);
+		}
+		else if (position.z > simulationParams.boundMax) {
+			bounceForce.z -= simulationParams.bounceForce * (position.z - simulationParams.boundMax);
+		}
+
+		velocity += bounceForce * deltaTime;
+	}
+
+	void limitSpeed() {
+		float speed = glm::length(velocity);
+		if (speed > MAX_SPEED) {
+			velocity = glm::normalize(velocity) * MAX_SPEED;
+		}
+		else if (speed < MIN_SPEED) {
+			velocity = glm::normalize(velocity) * MIN_SPEED;
+		}
+	}
 };
 
+class Flock {
+public:
+	std::vector<Boid> boids;
+	Flock() {}
 
-const float MAX_SPEED = 0.05f;
-const float MAX_FORCE = 0.02f;
-const float NEIGHBOR_RADIUS = 1.5f;
-const float SEPARATION_RADIUS = 0.5f;
+	Flock(int numBoids, GLuint VAO) {
+		for (int i = 0; i < numBoids; ++i) {
+			glm::vec3 position(
+				static_cast<float>(std::rand()) / RAND_MAX * 4.0f - 2.0f,
+				static_cast<float>(std::rand()) / RAND_MAX * 4.0f - 2.0f,
+				static_cast<float>(std::rand()) / RAND_MAX * 4.0f - 2.0f
+			);
 
-std::vector<Boid> boids;
+			glm::vec3 velocity(
+				static_cast<float>(std::rand()) / RAND_MAX * 2.0f - 1.0f,
+				static_cast<float>(std::rand()) / RAND_MAX * 2.0f - 1.0f,
+				static_cast<float>(std::rand()) / RAND_MAX * 2.0f - 1.0f
+			);
+			velocity = glm::normalize(velocity) * (static_cast<float>(std::rand()) / RAND_MAX * 2.0f);
 
-const float BOUNDARY_X = 5.0f;
-const float BOUNDARY_Y = 5.0f;
-const float BOUNDARY_Z = 5.0f;
-const float TURN_FORCE = 0.05f;
+			boids.emplace_back(position, velocity, VAO);
+		}
+	}
 
+	void update(float deltaTime) {
+		for (auto& boid : boids) {
+			glm::vec3 avoidance = computeAvoidance(boid);
+			glm::vec3 alignment = computeAlignment(boid);
+			glm::vec3 cohesion = computeCohesion(boid);
+			boid.update(deltaTime, avoidance + alignment + cohesion);
+		}
+	}
+
+	void draw(GLuint shaderProgram, GLuint modelLoc, const glm::mat4& view, const glm::mat4& projection, GLuint viewLoc, GLuint projectionLoc) {
+		for (auto& boid : boids) {
+			boid.draw(shaderProgram, modelLoc, view, projection, viewLoc, projectionLoc);
+		}
+	}
+private:
+	glm::vec3 computeAvoidance(const Boid& boid) {
+		glm::vec3 avoidance(0.0f);
+		int count = 0;
+
+		for (const auto& other : boids) {
+			if (&other == &boid) continue;
+
+			float distance = glm::length(boid.position - other.position);
+			if (distance < simulationParams.avoidRadius && distance > 0.0f) {
+				avoidance += glm::normalize(boid.position - other.position) / (distance * distance);
+				count++;
+			}
+		}
+
+		if (count > 0) {
+			avoidance /= static_cast<float>(count);
+			avoidance *= simulationParams.avoidForce;
+		}
+		return avoidance;
+	}
+
+	glm::vec3 computeAlignment(const Boid& boid) {
+		glm::vec3 averageVelocity(0.0f);
+		int count = 0;
+
+		for (const auto& other : boids) {
+			if (&other == &boid) continue;
+
+			float distance = glm::length(boid.position - other.position);
+			if (distance < simulationParams.alignRadius) {
+				averageVelocity += other.velocity;
+				count++;
+			}
+		}
+
+		if (count > 0) {
+			averageVelocity /= static_cast<float>(count);
+			averageVelocity = glm::normalize(averageVelocity) * simulationParams.alignForce;
+		}
+		return averageVelocity;
+	}
+
+	glm::vec3 computeCohesion(const Boid& boid) {
+		glm::vec3 centerOfMass(0.0f);
+		int count = 0;
+
+		for (const auto& other : boids) {
+			if (&other == &boid) continue;
+
+			float distance = glm::length(boid.position - other.position);
+			if (distance < simulationParams.cohesionRadius) {
+				centerOfMass += other.position;
+				count++;
+			}
+		}
+
+		if (count > 0) {
+			centerOfMass /= static_cast<float>(count);
+			glm::vec3 cohesionForce = glm::normalize(centerOfMass - boid.position) * simulationParams.cohesionForce;
+			return cohesionForce;
+		}
+
+		return glm::vec3(0.0f);
+	}
+};
 
 namespace texture {
 	GLuint earth;
@@ -52,7 +241,6 @@ namespace texture {
 	GLuint shipNormal;
 }
 
-
 GLuint program;
 GLuint programSun;
 GLuint programTex;
@@ -63,154 +251,24 @@ Core::Shader_Loader shaderLoader;
 Core::RenderContext shipContext;
 Core::RenderContext sphereContext;
 
-glm::vec3 cameraPos = glm::vec3(-4.f, 0, 0);
-glm::vec3 cameraDir = glm::vec3(1.f, 0.f, 0.f);
-
-glm::vec3 spaceshipPos = glm::vec3(-4.f, 0, 0);
+glm::vec3 spaceshipPos = glm::vec3(-15.f, 0, 0);
 glm::vec3 spaceshipDir = glm::vec3(1.f, 0.f, 0.f);
+glm::vec3 cameraPos = glm::vec3(0, 0, 1.0f);
+glm::vec3 cameraDir = glm::vec3(1.0f, 0.0f, 0.0f);
+
 GLuint VAO, VBO;
 
 float aspectRatio = 1.f;
 
+GLuint boidVAO, boidVBO;
+GLuint boundingBoxVAO, boundingBoxVBO, boundingBoxEBO;
 
-glm::vec3 checkBoundaries(Boid& boid) {
-	glm::vec3 steer(0.0f);
+GLuint boidShader, boundBoxShader;
+Flock flock;
 
-	if (boid.position.x > BOUNDARY_X) steer.x = -TURN_FORCE;
-	else if (boid.position.x < -BOUNDARY_X) steer.x = TURN_FORCE;
-
-	if (boid.position.y > BOUNDARY_Y) steer.y = -TURN_FORCE;
-	else if (boid.position.y < -BOUNDARY_Y) steer.y = TURN_FORCE;
-
-	if (boid.position.z > BOUNDARY_Z) steer.z = -TURN_FORCE;
-	else if (boid.position.z < -BOUNDARY_Z) steer.z = TURN_FORCE;
-
-	return steer;
-}
-
-
-glm::vec3 separation(Boid& boid) {
-	glm::vec3 steer(0.0f);
-	int count = 0;
-	for (auto& other : boids) {
-		float distance = glm::length(boid.position - other.position);
-		if (distance > 0 && distance < SEPARATION_RADIUS) {
-			glm::vec3 diff = glm::normalize(boid.position - other.position) / distance;
-			steer += diff;
-			count++;
-		}
-	}
-	if (count > 0) {
-		steer /= (float)count;
-	}
-	if (glm::length(steer) > 0) {
-		steer = glm::normalize(steer) * MAX_SPEED - boid.velocity;
-		steer = glm::clamp(steer, -MAX_FORCE, MAX_FORCE);
-	}
-	return steer;
-}
-
-
-glm::vec3 alignment(Boid& boid) {
-	glm::vec3 avgVelocity(0.0f);
-	int count = 0;
-	for (auto& other : boids) {
-		float distance = glm::length(boid.position - other.position);
-		if (distance > 0 && distance < NEIGHBOR_RADIUS) {
-			avgVelocity += other.velocity;
-			count++;
-		}
-	}
-	if (count > 0) {
-		avgVelocity /= (float)count;
-		avgVelocity = glm::normalize(avgVelocity) * MAX_SPEED;
-		glm::vec3 steer = avgVelocity - boid.velocity;
-		return glm::clamp(steer, -MAX_FORCE, MAX_FORCE);
-	}
-	return glm::vec3(0.0f);
-}
-
-
-glm::vec3 cohesion(Boid& boid) {
-	glm::vec3 center(0.0f);
-	int count = 0;
-	for (auto& other : boids) {
-		float distance = glm::length(boid.position - other.position);
-		if (distance > 0 && distance < NEIGHBOR_RADIUS) {
-			center += other.position;
-			count++;
-		}
-	}
-	if (count > 0) {
-		center /= (float)count;
-		glm::vec3 steer = glm::normalize(center - boid.position) * MAX_SPEED - boid.velocity;
-		return glm::clamp(steer, -MAX_FORCE, MAX_FORCE);
-	}
-	return glm::vec3(0.0f);
-}
-
-
-void updateBoids() {
-	for (auto& boid : boids) {
-		glm::vec3 sep = separation(boid);
-		glm::vec3 align = alignment(boid);
-		glm::vec3 coh = cohesion(boid);
-		glm::vec3 boundaryAvoidance = checkBoundaries(boid);
-
-		boid.velocity += sep + align + coh + boundaryAvoidance;
-		boid.velocity = glm::normalize(boid.velocity) * MAX_SPEED;
-		boid.position += boid.velocity;
-	}
-}
-
-
-void drawBoundingBox() {
-	glUseProgram(program);
-	glm::mat4 modelMatrix = glm::scale(glm::vec3(BOUNDARY_X, BOUNDARY_Y, BOUNDARY_Z));
-
-	glUniformMatrix4fv(glGetUniformLocation(program, "transformation"), 1, GL_FALSE, &modelMatrix[0][0]);
-
-	glBegin(GL_LINES);
-	glColor3f(1, 1, 1);
-
-	for (int i = -1; i <= 1; i += 2) {
-		for (int j = -1; j <= 1; j += 2) {
-			for (int k = -1; k <= 1; k += 2) {
-				glVertex3f(i * BOUNDARY_X, j * BOUNDARY_Y, -BOUNDARY_Z);
-				glVertex3f(i * BOUNDARY_X, j * BOUNDARY_Y, BOUNDARY_Z);
-
-				glVertex3f(i * BOUNDARY_X, -BOUNDARY_Y, k * BOUNDARY_Z);
-				glVertex3f(i * BOUNDARY_X, BOUNDARY_Y, k * BOUNDARY_Z);
-
-				glVertex3f(-BOUNDARY_X, i * BOUNDARY_Y, k * BOUNDARY_Z);
-				glVertex3f(BOUNDARY_X, i * BOUNDARY_Y, k * BOUNDARY_Z);
-			}
-		}
-	}
-
-	glEnd();
-	glUseProgram(0);
-}
-
-
-void initBoids(int numBoids) {
-	for (int i = 0; i < numBoids; i++) {
-		glm::vec3 pos = glm::vec3(
-			((rand() % 100) / 50.0f) - 1,
-			((rand() % 100) / 50.0f) - 1,
-			((rand() % 100) / 50.0f) - 1
-		);
-
-		glm::vec3 vel = glm::normalize(glm::vec3(
-			((rand() % 100) / 50.0f) - 1,
-			((rand() % 100) / 50.0f) - 1,
-			((rand() % 100) / 50.0f) - 1
-		)) * MAX_SPEED;
-
-		boids.emplace_back(pos, vel);
-	}
-}
-
+GLuint modelLoc;
+GLuint viewLoc;
+GLuint projectionLoc;
 
 glm::mat4 createCameraMatrix()
 {
@@ -232,7 +290,7 @@ glm::mat4 createPerspectiveMatrix()
 {
 	glm::mat4 perspectiveMatrix;
 	float n = 0.05;
-	float f = 20.;
+	float f = 50.;
 	float a1 = glm::min(aspectRatio, 1.f);
 	float a2 = glm::min(1 / aspectRatio, 1.f);
 	perspectiveMatrix = glm::mat4({
@@ -271,28 +329,22 @@ void drawObjectTexture(Core::RenderContext& context, glm::mat4 modelMatrix, GLui
 	glUniform3f(glGetUniformLocation(programTex, "lightPos"), 0, 0, 0);
 	Core::SetActiveTexture(textureID, "colorTexture", programTex, 0);
 	Core::DrawContext(context);
-
 }
-
-
-void renderBoids() {
-	for (auto& boid : boids) {
-		glm::mat4 modelMatrix = glm::translate(boid.position) * glm::scale(glm::vec3(0.05f));
-		drawObjectTexture(sphereContext, modelMatrix, texture::ship);
-	}
-}
-
 
 void renderScene(GLFWwindow* window)
 {
-	glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
+	glClearColor(0.1f, 0.3f, 0.6f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glm::mat4 transformation;
 	float time = glfwGetTime();
 
-	renderBoids();
-	drawBoundingBox();
+	glm::mat4 projection = createPerspectiveMatrix();
+	glm::mat4 view = createCameraMatrix();
 
+	drawBoundingBox(view, projection, boundBoxShader, boundingBoxVAO);
+	flock.draw(boidShader, modelLoc, view, projection, viewLoc, projectionLoc);
+
+	flock.update(simulationParams.deltaTime);
 	glUseProgram(0);
 	glfwSwapBuffers(window);
 }
@@ -328,14 +380,23 @@ void init(GLFWwindow* window)
 
 	loadModelToContext("./models/sphere.objj", sphereContext);
 
-	initBoids(100);
+	setupBoidVAOandVBO(boidVAO, boidVBO, boidVertices, sizeof(boidVertices));
+	setupBoundingBox(boundingBoxVAO, boundingBoxVBO, boundingBoxEBO);
+
+	boidShader = shaderLoader.CreateProgram("shaders/boid.vert", "shaders/boid.frag");
+	boundBoxShader = shaderLoader.CreateProgram("shaders/line.vert", "shaders/line.frag");
+
+	modelLoc = glGetUniformLocation(boidShader, "model");
+	viewLoc = glGetUniformLocation(boidShader, "view");
+	projectionLoc = glGetUniformLocation(boidShader, "projection");
+
+	flock = Flock(simulationParams.boidNumber, boidVAO);
 }
 
 void shutdown(GLFWwindow* window)
 {
 	shaderLoader.DeleteProgram(program);
 }
-
 
 void processInput(GLFWwindow* window)
 {
@@ -375,7 +436,6 @@ void renderLoop(GLFWwindow* window) {
 	while (!glfwWindowShouldClose(window))
 	{
 		processInput(window);
-		updateBoids();
 		renderScene(window);
 		glfwPollEvents();
 	}

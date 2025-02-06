@@ -23,7 +23,8 @@
     <ClCompile Include="src\Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Camera.h" />
+    <ClInclude Include="camera.h" />
+    <ClInclude Include="simulation.h" />
     <ClInclude Include="src\ex_7_1.hpp" />
     <ClInclude Include="src\objload.h" />
     <ClInclude Include="src\Render_Utils.h" />
@@ -35,6 +36,8 @@
     <ClInclude Include="src\SOIL\stbi_DDS_aug_c.h" />
     <ClInclude Include="src\SOIL\stb_image_aug.h" />
     <ClInclude Include="src\Texture.h" />
+    <ClInclude Include="utils.h" />
+    <ClInclude Include="vertices.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\shader_5_1.frag" />

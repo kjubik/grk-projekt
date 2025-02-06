@@ -89,6 +89,9 @@
     <ClInclude Include="src\ex_7_1.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="simulation.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\shader_5_sun.frag">
