@@ -344,7 +344,6 @@ void renderScene(GLFWwindow* window)
 	drawBoundingBox(view, projection, boundBoxShader, boundingBoxVAO);
 	flock.draw(boidShader, modelLoc, view, projection, viewLoc, projectionLoc);
 
-	flock.update(simulationParams.deltaTime);
 	glUseProgram(0);
 	glfwSwapBuffers(window);
 }
@@ -437,6 +436,7 @@ void renderLoop(GLFWwindow* window) {
 	{
 		processInput(window);
 		renderScene(window);
+		flock.update(simulationParams.deltaTime);
 		glfwPollEvents();
 	}
 }
