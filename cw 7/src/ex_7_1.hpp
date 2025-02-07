@@ -27,12 +27,15 @@ class Boid {
 public:
 	glm::vec3 position;
 	glm::vec3 velocity;
-	GLuint VAO;
+	glm::vec3 scale;
+	Core::RenderContext modelContext;
 
 	static constexpr float MAX_SPEED = 2.0f;
 	static constexpr float MIN_SPEED = 0.2f;
 
-	Boid(glm::vec3 pos, glm::vec3 vel, GLuint vao) : position(pos), velocity(vel), VAO(vao) {}
+	Boid(glm::vec3 pos, glm::vec3 vel, const Core::RenderContext& context, glm::vec3 scl = glm::vec3(1.0f))
+		: position(pos), velocity(vel), modelContext(context), scale(scl) {
+	}
 
 	void update(float deltaTime, const glm::vec3& acceleration) {
 		position += velocity * deltaTime;
@@ -42,7 +45,8 @@ public:
 		limitSpeed();
 	}
 
-	void draw(GLuint shaderProgram, GLuint modelLoc, const glm::mat4& view, const glm::mat4& projection, GLuint viewLoc, GLuint projectionLoc) {
+	void draw(GLuint shaderProgram, GLuint modelLoc, const glm::mat4& view,
+		const glm::mat4& projection, GLuint viewLoc, GLuint projectionLoc) {
 		glUseProgram(shaderProgram);
 
 		GLint inputColorLocation = glGetUniformLocation(shaderProgram, "inputColor");
@@ -50,15 +54,17 @@ public:
 
 		glm::mat4 rotationMatrix = getRotationMatrixFromVelocity(velocity);
 
-		glm::mat4 model = glm::translate(glm::mat4(1.0f), position) * rotationMatrix;
+		glm::mat4 model = glm::translate(glm::mat4(1.0f), position) * rotationMatrix * glm::scale(glm::mat4(1.0f), scale);
+
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 18);
-		glBindVertexArray(0);
+		Core::DrawContext(modelContext);
+
+		glUseProgram(0);
 	}
+
 private:
 	glm::mat4 getRotationMatrixFromVelocity(const glm::vec3& velocity) {
 		glm::vec3 forward = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -128,22 +134,21 @@ public:
 	std::vector<Boid> boids;
 	Flock() {}
 
-	Flock(int numBoids, GLuint VAO) {
+	Flock(int numBoids, const Core::RenderContext& modelContext) {
 		for (int i = 0; i < numBoids; ++i) {
-			glm::vec3 position(
+			glm::vec3 position = glm::vec3(
 				static_cast<float>(std::rand()) / RAND_MAX * 4.0f - 2.0f,
 				static_cast<float>(std::rand()) / RAND_MAX * 4.0f - 2.0f,
 				static_cast<float>(std::rand()) / RAND_MAX * 4.0f - 2.0f
 			);
 
-			glm::vec3 velocity(
+			glm::vec3 velocity = glm::normalize(glm::vec3(
 				static_cast<float>(std::rand()) / RAND_MAX * 2.0f - 1.0f,
 				static_cast<float>(std::rand()) / RAND_MAX * 2.0f - 1.0f,
 				static_cast<float>(std::rand()) / RAND_MAX * 2.0f - 1.0f
-			);
-			velocity = glm::normalize(velocity) * (static_cast<float>(std::rand()) / RAND_MAX * 2.0f);
+			)) * (static_cast<float>(std::rand()) / RAND_MAX * 2.0f);
 
-			boids.emplace_back(position, velocity, VAO);
+			boids.emplace_back(position, velocity, modelContext, glm::vec3(0.3f));
 		}
 	}
 
@@ -389,7 +394,7 @@ void init(GLFWwindow* window)
 	viewLoc = glGetUniformLocation(boidShader, "view");
 	projectionLoc = glGetUniformLocation(boidShader, "projection");
 
-	flock = Flock(simulationParams.boidNumber, boidVAO);
+	flock = Flock(simulationParams.boidNumber, sphereContext);
 }
 
 void shutdown(GLFWwindow* window)
