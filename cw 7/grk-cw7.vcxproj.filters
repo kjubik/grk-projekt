@@ -19,6 +19,9 @@
     <Filter Include="Source Files\SOIL">
       <UniqueIdentifier>{0af44075-33f4-4953-b1d6-1d28d61d758f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\boids">
+      <UniqueIdentifier>{1ec7b133-2949-4127-ba9e-856c047a2e47}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Render_Utils.cpp">
@@ -62,9 +65,6 @@
     <ClInclude Include="src\Shader_Loader.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Camera.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\Texture.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -88,6 +88,18 @@
     </ClInclude>
     <ClInclude Include="src\ex_7_1.hpp">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Camera.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\boids\vertices.h">
+      <Filter>Source Files\boids</Filter>
+    </ClInclude>
+    <ClInclude Include="src\boids\simulation.h">
+      <Filter>Source Files\boids</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
