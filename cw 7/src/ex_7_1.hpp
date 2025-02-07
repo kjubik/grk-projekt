@@ -343,6 +343,7 @@ void renderScene(GLFWwindow* window)
 
 	drawBoundingBox(view, projection, boundBoxShader, boundingBoxVAO);
 	flock.draw(boidShader, modelLoc, view, projection, viewLoc, projectionLoc);
+	drawSliderWidget(&simulationParams);
 
 	glUseProgram(0);
 	glfwSwapBuffers(window);
@@ -388,6 +389,8 @@ void init(GLFWwindow* window)
 	modelLoc = glGetUniformLocation(boidShader, "model");
 	viewLoc = glGetUniformLocation(boidShader, "view");
 	projectionLoc = glGetUniformLocation(boidShader, "projection");
+
+	initWidget(window);
 
 	flock = Flock(simulationParams.boidNumber, boidVAO);
 }
@@ -439,4 +442,5 @@ void renderLoop(GLFWwindow* window) {
 		flock.update(simulationParams.deltaTime);
 		glfwPollEvents();
 	}
+	destroyWidget();
 }
