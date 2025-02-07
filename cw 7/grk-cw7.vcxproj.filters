@@ -121,5 +121,17 @@
     <None Include="shaders\shader_5_1_tex.frag">
       <Filter>Shader Files</Filter>
     </None>
+    <None Include="shaders\boid.frag">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="shaders\boid.vert">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="shaders\line.frag">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="shaders\line.vert">
+      <Filter>Shader Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
