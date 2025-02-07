@@ -66,15 +66,4 @@ void drawBoundingBox(glm::mat4 view, glm::mat4 projection, GLuint lineShader, GL
     glBindVertexArray(0);
 }
 
-GLFWwindow* createWindow(int width, int height, const char* title) {
-    GLFWwindow* window = glfwCreateWindow(width, height, title, nullptr, nullptr);
-    if (!window) {
-        std::cerr << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        exit(-1);
-    }
-    glfwMakeContextCurrent(window);
-    return window;
-}
-
 #endif //UTILS_H
