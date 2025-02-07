@@ -17,9 +17,9 @@
 
 #include <vector>
 
-#include "simulation.h"
+#include "boids/simulation.h"
+#include "boids/vertices.h"
 #include "utils.h"
-#include "vertices.h"
 
 SimulationParams simulationParams;
 

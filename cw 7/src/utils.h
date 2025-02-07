@@ -11,7 +11,7 @@
 #include <cmath>
 
 #include <cstdlib>
-#include "vertices.h"
+#include "boids/vertices.h"
 
 void setupBoidVAOandVBO(GLuint& VAO, GLuint& VBO, const float* vertices, size_t size) {
     glGenVertexArrays(1, &VAO);
