@@ -307,8 +307,8 @@ public:
 		vertices.clear();
 		indices.clear();
 
-		float frequency = 0.1f;  // Controls how "stretched" the noise is
-		float heightScale = 10.0f; // Controls terrain height
+		float frequency = 0.1f;
+		float heightScale = 10.0f;
 
 		// Generate vertices
 		for (int z = 0; z <= resolution; ++z) {
@@ -318,14 +318,13 @@ public:
 
 				// Apply Perlin noise with scaling
 				float noise = perlinNoise.noise(xPos * frequency, 1.0f, zPos * frequency);
-				noise = (noise + 1.0f) / 2.0f * heightScale; // Normalize from [-1, 1] to [0, heightScale]
+				noise = (noise + 1.0f) / 2.0f * heightScale;
 
 				std::cout << noise << std::endl;
 				vertices.push_back(glm::vec3(xPos, noise, zPos));
 			}
 		}
 
-		// Generate indices for triangles
 		for (int z = 0; z < resolution; ++z) {
 			for (int x = 0; x < resolution; ++x) {
 				int topLeft = z * (resolution + 1) + x;
@@ -393,8 +392,7 @@ public:
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-
-		// Get color uniform location
+		
 		GLint colorLoc = glGetUniformLocation(shaderProgram, "objectColor");
 
 		glBindVertexArray(terrainVAO);
