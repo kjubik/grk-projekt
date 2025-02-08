@@ -26,7 +26,7 @@
 #include <random>
 #include <numeric>
 
-bool wireframeView = false;
+bool wireframeOnlyView = false;
 bool key1WasPressed = false;
 
 SimulationParams simulationParams;
@@ -374,25 +374,25 @@ public:
 		glBindVertexArray(0);
 	}
 
-	void render() {
-		// Set up projection and modelview matrices
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-
-		// Render surface
-		glColor3f(0.5f, 0.5f, 0.5f);  // Gray surface color
-		glBindVertexArray(VAO);
-		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
-
-		// Render wireframe
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		glLineWidth(2.0f);
-		glColor3f(1.0f, 1.0f, 1.0f);  // White wireframe
-		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
-
-		// Reset to filled polygons
-		if (!wireframeView)
+	void render(bool wireframeMode = false) {
+		if (wireframeMode) {
+			// Wireframe only
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glLineWidth(1.0f);
+			glColor3f(1.0f, 0.0f, 0.0f);  // White wireframe
+			glBindVertexArray(VAO);
+			glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+		}
+		else {
+			// Solid colored shapes
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			glColor3f(0.5f, 0.5f, 0.5f);  // Gray surface color
+			glBindVertexArray(VAO);
+			glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+		}
+
+		// Reset to default fill mode
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
 
 	~ProceduralTerrain() {
@@ -521,7 +521,7 @@ void renderScene(GLFWwindow* window)
 	flock.draw(boidShader, modelLoc, view, projection, viewLoc, projectionLoc);
 
 	if (terrain)
-		terrain->render();
+		terrain->render(wireframeOnlyView);
 
 	glUseProgram(0);
 	glfwSwapBuffers(window);
@@ -614,7 +614,7 @@ void processInput(GLFWwindow* window)
 	}
 	else {
 		if (key1WasPressed) {
-			wireframeView = !wireframeView;
+			wireframeOnlyView = !wireframeOnlyView;
 			key1WasPressed = false;
 		}
 	}
