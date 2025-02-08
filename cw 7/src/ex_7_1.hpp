@@ -21,6 +21,14 @@
 #include "boids/vertices.h"
 #include "utils.h"
 
+#include <vector>
+#include <cmath>
+#include <random>
+#include <numeric>
+
+bool wireframeOnlyView = false;
+bool key1WasPressed = false;
+
 SimulationParams simulationParams;
 
 class Boid {
@@ -233,6 +241,207 @@ private:
 	}
 };
 
+class PerlinNoise {
+private:
+	std::vector<int> p;
+
+	static float fade(float t) {
+		return t * t * t * (t * (t * 6 - 15) + 10);
+	}
+
+	static float lerp(float t, float a, float b) {
+		return a + t * (b - a);
+	}
+
+	static float grad(int hash, float x, float y, float z) {
+		int h = hash & 15;
+		float u = h < 8 ? x : y;
+		float v = h < 4 ? y : h == 12 || h == 14 ? x : z;
+		return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
+	}
+
+public:
+	PerlinNoise() {
+		p.resize(256);
+		std::iota(p.begin(), p.end(), 0);
+		std::shuffle(p.begin(), p.end(), std::default_random_engine());
+
+		p.insert(p.end(), p.begin(), p.end());
+	}
+
+	float noise(float x, float y, float z) const {
+		int X = (int)floor(x) & 255;
+		int Y = (int)floor(y) & 255;
+		int Z = (int)floor(z) & 255;
+
+		x -= floor(x);
+		y -= floor(y);
+		z -= floor(z);
+
+		float u = fade(x);
+		float v = fade(y);
+		float w = fade(z);
+
+		int A = p[X] + Y, AA = p[A] + Z, AB = p[A + 1] + Z;
+		int B = p[X + 1] + Y, BA = p[B] + Z, BB = p[B + 1] + Z;
+
+		return lerp(w, lerp(v, lerp(u, grad(p[AA], x, y, z), grad(p[BA], x - 1, y, z)),
+			lerp(u, grad(p[AB], x, y - 1, z), grad(p[BB], x - 1, y - 1, z))),
+			lerp(v, lerp(u, grad(p[AA + 1], x, y, z - 1), grad(p[BA + 1], x - 1, y, z - 1)),
+				lerp(u, grad(p[AB + 1], x, y - 1, z - 1), grad(p[BB + 1], x - 1, y - 1, z - 1))));
+	}
+};
+
+class ProceduralTerrain {
+private:
+	std::vector<glm::vec3> vertices;
+	std::vector<GLuint> indices;
+	GLuint terrainVAO, terrainVBO, terrainEBO;
+	float planeSize;
+	int resolution;
+	PerlinNoise perlinNoise;
+
+public:
+	ProceduralTerrain(float size = 10.0f, int res = 10)
+		: planeSize(size), resolution(res) {
+		generateTerrain();
+		setupMesh();
+	}
+
+	void generateTerrain() {
+		vertices.clear();
+		indices.clear();
+
+		float frequency = .1f; // ammount of peeks
+		float heightScale = 10.0f; // height of peeks
+
+		// Generate vertices
+		for (int z = 0; z <= resolution; ++z) {
+			for (int x = 0; x <= resolution; ++x) {
+				float xPos = (x / static_cast<float>(resolution)) * planeSize - (planeSize / 2.0f);
+				float zPos = (z / static_cast<float>(resolution)) * planeSize - (planeSize / 2.0f);
+
+				// Apply Perlin noise with scaling
+				float noise = perlinNoise.noise(xPos * frequency, 1.0f, zPos * frequency);
+				noise = (noise + 1.0f) / 2.0f * heightScale;
+
+				vertices.push_back(glm::vec3(xPos, noise, zPos));
+			}
+		}
+
+		for (int z = 0; z < resolution; ++z) {
+			for (int x = 0; x < resolution; ++x) {
+				int topLeft = z * (resolution + 1) + x;
+				int topRight = topLeft + 1;
+				int bottomLeft = (z + 1) * (resolution + 1) + x;
+				int bottomRight = bottomLeft + 1;
+
+				/*
+					0---1
+					|  /|
+					| / |
+					|/  |
+					2---3
+				*/
+
+				// First triangle (0-1-2)
+				indices.push_back(topLeft);
+				indices.push_back(bottomLeft);
+				indices.push_back(topRight);
+
+				// Second triangle (1-3-2)
+				indices.push_back(topRight);
+				indices.push_back(bottomLeft);
+				indices.push_back(bottomRight);
+			}
+		}
+	}
+
+	void setupMesh() {
+		glGenVertexArrays(1, &terrainVAO);
+		glBindVertexArray(terrainVAO);
+
+		glGenBuffers(1, &terrainVBO);
+		glBindBuffer(GL_ARRAY_BUFFER, terrainVBO);
+		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3),
+			vertices.data(), GL_STATIC_DRAW);
+
+		glGenBuffers(1, &terrainEBO);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint),
+			indices.data(), GL_STATIC_DRAW);
+
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+		glEnableVertexAttribArray(0);
+
+		glBindVertexArray(0);
+	}
+
+	void render(GLuint shaderProgram, const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model) {
+		glUseProgram(shaderProgram);
+
+		float minHeight = std::numeric_limits<float>::max();
+		float maxHeight = std::numeric_limits<float>::lowest();
+
+		for (const auto& vertex : vertices) {
+			float height = vertex.y;
+			minHeight = std::min(minHeight, height);
+			maxHeight = std::max(maxHeight, height);
+		}
+
+		GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
+		GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
+		GLint modelLoc = glGetUniformLocation(shaderProgram, "model");
+
+		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		
+		GLint colorLoc = glGetUniformLocation(shaderProgram, "objectColor");
+
+		glBindVertexArray(terrainVAO);
+
+		if (wireframeOnlyView) {
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glLineWidth(2.0f);
+			glUniform3f(colorLoc, 0.8f, 0.0f, 0.8f);
+			glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		} else {
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+			for (size_t i = 0; i < indices.size() / 3; ++i) {
+				unsigned int index1 = indices[i * 3];
+				unsigned int index2 = indices[i * 3 + 1];
+				unsigned int index3 = indices[i * 3 + 2];
+
+				glm::vec3 vertex1 = vertices[index1];
+				glm::vec3 vertex2 = vertices[index2];
+				glm::vec3 vertex3 = vertices[index3];
+
+				float avgHeight = (vertex1.y + vertex2.y + vertex3.y) / 3.0f;
+
+				float normalizedHeight = (avgHeight - minHeight) / (maxHeight - minHeight);
+				normalizedHeight = glm::clamp(normalizedHeight, 0.0f, 1.0f);
+				glm::vec3 color = glm::vec3(normalizedHeight);
+
+				// TODO: use different textures based on normalizedHeight
+
+				glUniform3f(colorLoc, color.x, color.y, color.z);
+				glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, (void*)(i * 3 * sizeof(unsigned int)));
+			}
+		}
+	}
+
+	~ProceduralTerrain() {
+		glDeleteVertexArrays(1, &terrainVAO);
+		glDeleteBuffers(1, &terrainVBO);
+		glDeleteBuffers(1, &terrainEBO);
+	}
+};
+
+ProceduralTerrain* terrain;
+
 namespace texture {
 	GLuint earth;
 	GLuint clouds;
@@ -269,12 +478,14 @@ float aspectRatio = 1.f;
 GLuint boidVAO, boidVBO;
 GLuint boundingBoxVAO, boundingBoxVBO, boundingBoxEBO;
 
-GLuint boidShader, boundBoxShader;
+GLuint boidShader, boundBoxShader, terrainShader;
 Flock flock;
 
 GLuint modelLoc;
 GLuint viewLoc;
 GLuint projectionLoc;
+
+GLuint terrainProjectionLoc, terrainViewLoc, terrainModelLoc, terrainColorLoc;
 
 glm::mat4 createCameraMatrix()
 {
@@ -350,6 +561,9 @@ void renderScene(GLFWwindow* window)
 	drawBoundingBox(view, projection, boundBoxShader, boundingBoxVAO);
 	flock.draw(boidShader, modelLoc, view, projection, viewLoc, projectionLoc);
 
+	if (terrain)
+		terrain->render(terrainShader, projection, view, glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -10.f, 0.0f)));
+
 	glm::mat4 treeModelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(2.5f));
 	treeModelMatrix = glm::translate(treeModelMatrix, glm::vec3(0.0f, -4.0f, 0.0f));
 	drawObjectColor(treeContext, treeModelMatrix, glm::vec3(1.0f, 1.0f, 1.0f));
@@ -394,14 +608,21 @@ void init(GLFWwindow* window)
 
 	setupBoidVAOandVBO(boidVAO, boidVBO, boidVertices, sizeof(boidVertices));
 	setupBoundingBox(boundingBoxVAO, boundingBoxVBO, boundingBoxEBO);
+	terrain = new ProceduralTerrain(150.0f, 50);
 
 	boidShader = shaderLoader.CreateProgram("shaders/boid.vert", "shaders/boid.frag");
 	boundBoxShader = shaderLoader.CreateProgram("shaders/line.vert", "shaders/line.frag");
+	terrainShader = shaderLoader.CreateProgram("shaders/terrain.vert", "shaders/terrain.frag");
 
 	modelLoc = glGetUniformLocation(boidShader, "model");
 	viewLoc = glGetUniformLocation(boidShader, "view");
 	projectionLoc = glGetUniformLocation(boidShader, "projection");
 
+	terrainProjectionLoc = glGetUniformLocation(terrainShader, "projection");
+	terrainViewLoc = glGetUniformLocation(terrainShader, "view");
+	terrainModelLoc = glGetUniformLocation(terrainShader, "model");
+	terrainColorLoc = glGetUniformLocation(terrainShader, "objectColor");
+  
 	initWidget(window);
 
 	flock = Flock(simulationParams.boidNumber, birdContext);
@@ -410,14 +631,18 @@ void init(GLFWwindow* window)
 void shutdown(GLFWwindow* window)
 {
 	shaderLoader.DeleteProgram(program);
+	if (terrain) {
+		delete terrain;
+		terrain = nullptr;
+	}
 }
 
 void processInput(GLFWwindow* window)
 {
 	glm::vec3 spaceshipSide = glm::normalize(glm::cross(spaceshipDir, glm::vec3(0.f, 1.f, 0.f)));
 	glm::vec3 spaceshipUp = glm::vec3(0.f, 1.f, 0.f);
-	float angleSpeed = 0.05f;
-	float moveSpeed = 0.025f;
+	float angleSpeed = 0.075f;
+	float moveSpeed = 0.1f;
 
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
@@ -439,7 +664,18 @@ void processInput(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		spaceshipDir = glm::vec3(glm::eulerAngleY(-angleSpeed) * glm::vec4(spaceshipDir, 0));
 
-	cameraPos = spaceshipPos - 1.5 * spaceshipDir + glm::vec3(0, 1, 0) * 0.5f;
+	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
+		key1WasPressed = true;
+	}
+	else {
+		if (key1WasPressed) {
+			wireframeOnlyView = !wireframeOnlyView;
+			key1WasPressed = false;
+		}
+	}
+
+
+	cameraPos = spaceshipPos + spaceshipDir;
 	cameraDir = spaceshipDir;
 
 	//cameraDir = glm::normalize(-cameraPos);
