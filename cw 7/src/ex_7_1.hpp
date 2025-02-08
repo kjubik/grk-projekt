@@ -228,6 +228,114 @@ private:
 	}
 };
 
+class ProceduralTerrain {
+private:
+	std::vector<glm::vec3> vertices;
+	std::vector<GLuint> indices;
+	GLuint VAO, VBO, EBO;
+	float planeSize;
+	int resolution;
+
+public:
+	ProceduralTerrain(float size = 10.0f, int res = 10)
+		: planeSize(size), resolution(res) {
+		generateTerrain();
+		setupMesh();
+	}
+
+	void generateTerrain() {
+		vertices.clear();
+		indices.clear();
+
+		// Generate vertices
+		for (int z = 0; z <= resolution; ++z) {
+			for (int x = 0; x <= resolution; ++x) {
+				float xPos = (x / static_cast<float>(resolution)) * planeSize - (planeSize / 2.0f);
+				float zPos = (z / static_cast<float>(resolution)) * planeSize - (planeSize / 2.0f);
+
+				vertices.push_back(glm::vec3(xPos, 0.0f, zPos));
+			}
+		}
+
+		// Generate indices for triangles
+		for (int z = 0; z < resolution; ++z) {
+			for (int x = 0; x < resolution; ++x) {
+				int topLeft = z * (resolution + 1) + x;
+				int topRight = topLeft + 1;
+				int bottomLeft = (z + 1) * (resolution + 1) + x;
+				int bottomRight = bottomLeft + 1;
+
+				/*
+					0---1
+					|  /|
+					| / |
+					|/  |
+					2---3
+				*/
+
+				// First triangle (0-1-2)
+				indices.push_back(topLeft);
+				indices.push_back(bottomLeft);
+				indices.push_back(topRight);
+
+				// Second triangle (1-3-2)
+				indices.push_back(topRight);
+				indices.push_back(bottomLeft);
+				indices.push_back(bottomRight);
+			}
+		}
+	}
+
+	void setupMesh() {
+		glGenVertexArrays(1, &VAO);
+		glBindVertexArray(VAO);
+
+		glGenBuffers(1, &VBO);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3),
+			vertices.data(), GL_STATIC_DRAW);
+
+		glGenBuffers(1, &EBO);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint),
+			indices.data(), GL_STATIC_DRAW);
+
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+		glEnableVertexAttribArray(0);
+
+		glBindVertexArray(0);
+	}
+
+	void render() {
+		// Set up projection and modelview matrices
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+
+		// Render surface
+		glColor3f(0.5f, 0.5f, 0.5f);  // Gray surface color
+		glBindVertexArray(VAO);
+		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+
+		// Render wireframe
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glLineWidth(2.0f);
+		glColor3f(1.0f, 1.0f, 1.0f);  // White wireframe
+		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+
+		// Reset to filled polygons
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	}
+
+	~ProceduralTerrain() {
+		glDeleteVertexArrays(1, &VAO);
+		glDeleteBuffers(1, &VBO);
+		glDeleteBuffers(1, &EBO);
+	}
+};
+
+ProceduralTerrain* terrain;
+
+
 namespace texture {
 	GLuint earth;
 	GLuint clouds;
@@ -344,6 +452,9 @@ void renderScene(GLFWwindow* window)
 	drawBoundingBox(view, projection, boundBoxShader, boundingBoxVAO);
 	flock.draw(boidShader, modelLoc, view, projection, viewLoc, projectionLoc);
 
+	if (terrain)
+		terrain->render();
+
 	glUseProgram(0);
 	glfwSwapBuffers(window);
 }
@@ -389,12 +500,18 @@ void init(GLFWwindow* window)
 	viewLoc = glGetUniformLocation(boidShader, "view");
 	projectionLoc = glGetUniformLocation(boidShader, "projection");
 
-	flock = Flock(simulationParams.boidNumber, boidVAO);
+	terrain = new ProceduralTerrain(10.0f, 10);
+
+	//flock = Flock(simulationParams.boidNumber, boidVAO);
 }
 
 void shutdown(GLFWwindow* window)
 {
 	shaderLoader.DeleteProgram(program);
+	if (terrain) {
+		delete terrain;
+		terrain = nullptr;
+	}
 }
 
 void processInput(GLFWwindow* window)
@@ -436,7 +553,7 @@ void renderLoop(GLFWwindow* window) {
 	{
 		processInput(window);
 		renderScene(window);
-		flock.update(simulationParams.deltaTime);
+		//flock.update(simulationParams.deltaTime);
 		glfwPollEvents();
 	}
 }
