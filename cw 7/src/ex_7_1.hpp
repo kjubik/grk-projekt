@@ -374,25 +374,36 @@ public:
 		glBindVertexArray(0);
 	}
 
-	void render(bool wireframeMode = false) {
-		if (wireframeMode) {
-			// Wireframe only
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			glLineWidth(1.0f);
-			glColor3f(1.0f, 0.0f, 0.0f);  // White wireframe
-			glBindVertexArray(terrainVAO);
-			glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
-		}
-		else {
-			// Solid colored shapes
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-			glColor3f(0.5f, 0.5f, 0.5f);  // Gray surface color
-			glBindVertexArray(terrainVAO);
-			glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
-		}
+	void render(GLuint shaderProgram, const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model) {
+		glUseProgram(shaderProgram);
 
-		// Reset to default fill mode
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		// Set matrices
+		GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
+		GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
+		GLint modelLoc = glGetUniformLocation(shaderProgram, "model");
+
+		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+		// Get color uniform location
+		GLint colorLoc = glGetUniformLocation(shaderProgram, "objectColor");
+
+		glBindVertexArray(terrainVAO);
+
+		if (wireframeOnlyView) {
+			// Render wireframe
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glLineWidth(2.0f);
+			glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f);  // White color for wireframe
+			glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		} else {
+			// Render filled terrain
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			glUniform3f(colorLoc, 0.2f, 0.5f, 0.3f);  // Green-ish color for terrain
+			glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+		}
 	}
 
 	~ProceduralTerrain() {
@@ -439,12 +450,14 @@ float aspectRatio = 1.f;
 GLuint boidVAO, boidVBO;
 GLuint boundingBoxVAO, boundingBoxVBO, boundingBoxEBO;
 
-GLuint boidShader, boundBoxShader;
+GLuint boidShader, boundBoxShader, terrainShader;
 Flock flock;
 
 GLuint modelLoc;
 GLuint viewLoc;
 GLuint projectionLoc;
+
+GLuint terrainProjectionLoc, terrainViewLoc, terrainModelLoc, terrainColorLoc;
 
 glm::mat4 createCameraMatrix()
 {
@@ -521,7 +534,7 @@ void renderScene(GLFWwindow* window)
 	flock.draw(boidShader, modelLoc, view, projection, viewLoc, projectionLoc);
 
 	if (terrain)
-		terrain->render(wireframeOnlyView);
+		terrain->render(terrainShader, projection, view, glm::mat4(1.0f));
 
 	glUseProgram(0);
 	glfwSwapBuffers(window);
@@ -560,17 +573,22 @@ void init(GLFWwindow* window)
 
 	setupBoidVAOandVBO(boidVAO, boidVBO, boidVertices, sizeof(boidVertices));
 	setupBoundingBox(boundingBoxVAO, boundingBoxVBO, boundingBoxEBO);
+	terrain = new ProceduralTerrain(50.0f, 20);
 
 	boidShader = shaderLoader.CreateProgram("shaders/boid.vert", "shaders/boid.frag");
 	boundBoxShader = shaderLoader.CreateProgram("shaders/line.vert", "shaders/line.frag");
+	terrainShader = shaderLoader.CreateProgram("shaders/terrain.vert", "shaders/terrain.frag");
 
 	modelLoc = glGetUniformLocation(boidShader, "model");
 	viewLoc = glGetUniformLocation(boidShader, "view");
 	projectionLoc = glGetUniformLocation(boidShader, "projection");
 
-	terrain = new ProceduralTerrain(50.0f, 20);
+	terrainProjectionLoc = glGetUniformLocation(terrainShader, "projection");
+	terrainViewLoc = glGetUniformLocation(terrainShader, "view");
+	terrainModelLoc = glGetUniformLocation(terrainShader, "model");
+	terrainColorLoc = glGetUniformLocation(terrainShader, "objectColor");
 
-	//flock = Flock(simulationParams.boidNumber, boidVAO);
+	// flock = Flock(simulationParams.boidNumber, boidVAO);
 }
 
 void shutdown(GLFWwindow* window)
