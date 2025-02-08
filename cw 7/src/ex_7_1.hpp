@@ -599,7 +599,7 @@ void init(GLFWwindow* window)
 
 	setupBoidVAOandVBO(boidVAO, boidVBO, boidVertices, sizeof(boidVertices));
 	setupBoundingBox(boundingBoxVAO, boundingBoxVBO, boundingBoxEBO);
-	terrain = new ProceduralTerrain(150.0f, 100);
+	terrain = new ProceduralTerrain(150.0f, 50);
 
 	boidShader = shaderLoader.CreateProgram("shaders/boid.vert", "shaders/boid.frag");
 	boundBoxShader = shaderLoader.CreateProgram("shaders/line.vert", "shaders/line.frag");
