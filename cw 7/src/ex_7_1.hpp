@@ -386,7 +386,6 @@ public:
 			maxHeight = std::max(maxHeight, height);
 		}
 
-		// Set matrices
 		GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
 		GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
 		GLint modelLoc = glGetUniformLocation(shaderProgram, "model");
@@ -560,7 +559,7 @@ void renderScene(GLFWwindow* window)
 	flock.draw(boidShader, modelLoc, view, projection, viewLoc, projectionLoc);
 
 	if (terrain)
-		terrain->render(terrainShader, projection, view, glm::mat4(1.0f));
+		terrain->render(terrainShader, projection, view, glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -10.f, 0.0f)));
 
 	glUseProgram(0);
 	glfwSwapBuffers(window);
