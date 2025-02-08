@@ -1,6 +1,10 @@
 #ifndef WIDGET_H
 #define WIDGET_H
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 struct SimulationParams {
     float avoidRadius;
     float avoidForce;
@@ -29,5 +33,42 @@ struct SimulationParams {
         deltaTime(dt), boidModelScale(scale) {
     }
 };
+
+void initWidget(GLFWwindow* window) {
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::StyleColorsDark();
+
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 410");
+}
+
+void drawSliderWidget(SimulationParams* params) {
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    ImGui::Begin("Boid Parameters");
+
+    ImGui::SliderFloat("Avoid Force", &params->avoidForce, 0.1f, 5.0f);
+    ImGui::SliderFloat("Avoid Radius", &params->avoidRadius, 0.1f, 5.0f);
+    ImGui::SliderFloat("Align Force", &params->alignForce, 0.1f, 5.0f);
+    ImGui::SliderFloat("Align Radius", &params->alignRadius, 0.1f, 5.0f);
+    ImGui::SliderFloat("Cohesion Force", &params->cohesionForce, 0.1f, 5.0f);
+    ImGui::SliderFloat("Cohesion Radius", &params->cohesionRadius, 0.1f, 5.0f);
+    ImGui::SliderFloat("Delta Time", &params->deltaTime, 0.0f, 0.1f);
+
+    ImGui::End();
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void destroyWidget() {
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+}
 
 #endif //WIDGET_H

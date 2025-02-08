@@ -354,6 +354,8 @@ void renderScene(GLFWwindow* window)
 	treeModelMatrix = glm::translate(treeModelMatrix, glm::vec3(0.0f, -4.0f, 0.0f));
 	drawObjectColor(treeContext, treeModelMatrix, glm::vec3(1.0f, 1.0f, 1.0f));
 
+	drawSliderWidget(&simulationParams);
+
 	glUseProgram(0);
 	glfwSwapBuffers(window);
 }
@@ -399,6 +401,8 @@ void init(GLFWwindow* window)
 	modelLoc = glGetUniformLocation(boidShader, "model");
 	viewLoc = glGetUniformLocation(boidShader, "view");
 	projectionLoc = glGetUniformLocation(boidShader, "projection");
+
+	initWidget(window);
 
 	flock = Flock(simulationParams.boidNumber, birdContext);
 }
@@ -450,4 +454,5 @@ void renderLoop(GLFWwindow* window) {
 		flock.update(simulationParams.deltaTime);
 		glfwPollEvents();
 	}
+	destroyWidget();
 }
