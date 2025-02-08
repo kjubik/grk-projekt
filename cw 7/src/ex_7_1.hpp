@@ -325,7 +325,6 @@ public:
 				float noise = perlinNoise.noise(xPos * frequency, 1.0f, zPos * frequency);
 				noise = (noise + 1.0f) / 2.0f * heightScale;
 
-				std::cout << noise << std::endl;
 				vertices.push_back(glm::vec3(xPos, noise, zPos));
 			}
 		}
