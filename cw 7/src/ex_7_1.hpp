@@ -664,7 +664,7 @@ void processInput(GLFWwindow* window)
 	}
 
 
-	cameraPos = spaceshipPos - 1.5 * spaceshipDir + glm::vec3(0, 1, 0) * 0.5f;
+	cameraPos = spaceshipPos + spaceshipDir;
 	cameraDir = spaceshipDir;
 
 	//cameraDir = glm::normalize(-cameraPos);
