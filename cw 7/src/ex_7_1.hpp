@@ -294,6 +294,7 @@ private:
 	GLuint terrainVAO, terrainVBO, terrainEBO;
 	float planeSize;
 	int resolution;
+	PerlinNoise perlinNoise;
 
 public:
 	ProceduralTerrain(float size = 10.0f, int res = 10)
@@ -306,7 +307,6 @@ public:
 		vertices.clear();
 		indices.clear();
 
-		PerlinNoise perlinNoise;
 		float frequency = 0.1f;  // Controls how "stretched" the noise is
 		float heightScale = 10.0f; // Controls terrain height
 
@@ -403,7 +403,7 @@ public:
 		if (wireframeOnlyView) {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			glLineWidth(2.0f);
-			glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f);
+			glUniform3f(colorLoc, 0.8f, 0.0f, 0.8f);
 			glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		} else {
@@ -599,7 +599,7 @@ void init(GLFWwindow* window)
 
 	setupBoidVAOandVBO(boidVAO, boidVBO, boidVertices, sizeof(boidVertices));
 	setupBoundingBox(boundingBoxVAO, boundingBoxVBO, boundingBoxEBO);
-	terrain = new ProceduralTerrain(50.0f, 20);
+	terrain = new ProceduralTerrain(50.0f, 30);
 
 	boidShader = shaderLoader.CreateProgram("shaders/boid.vert", "shaders/boid.frag");
 	boundBoxShader = shaderLoader.CreateProgram("shaders/line.vert", "shaders/line.frag");
