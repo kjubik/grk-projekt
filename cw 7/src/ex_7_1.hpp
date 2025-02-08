@@ -291,7 +291,7 @@ class ProceduralTerrain {
 private:
 	std::vector<glm::vec3> vertices;
 	std::vector<GLuint> indices;
-	GLuint VAO, VBO, EBO;
+	GLuint terrainVAO, terrainVBO, terrainEBO;
 	float planeSize;
 	int resolution;
 
@@ -355,16 +355,16 @@ public:
 	}
 
 	void setupMesh() {
-		glGenVertexArrays(1, &VAO);
-		glBindVertexArray(VAO);
+		glGenVertexArrays(1, &terrainVAO);
+		glBindVertexArray(terrainVAO);
 
-		glGenBuffers(1, &VBO);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glGenBuffers(1, &terrainVBO);
+		glBindBuffer(GL_ARRAY_BUFFER, terrainVBO);
 		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3),
 			vertices.data(), GL_STATIC_DRAW);
 
-		glGenBuffers(1, &EBO);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+		glGenBuffers(1, &terrainEBO);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint),
 			indices.data(), GL_STATIC_DRAW);
 
@@ -380,14 +380,14 @@ public:
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			glLineWidth(1.0f);
 			glColor3f(1.0f, 0.0f, 0.0f);  // White wireframe
-			glBindVertexArray(VAO);
+			glBindVertexArray(terrainVAO);
 			glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 		}
 		else {
 			// Solid colored shapes
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			glColor3f(0.5f, 0.5f, 0.5f);  // Gray surface color
-			glBindVertexArray(VAO);
+			glBindVertexArray(terrainVAO);
 			glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 		}
 
@@ -396,9 +396,9 @@ public:
 	}
 
 	~ProceduralTerrain() {
-		glDeleteVertexArrays(1, &VAO);
-		glDeleteBuffers(1, &VBO);
-		glDeleteBuffers(1, &EBO);
+		glDeleteVertexArrays(1, &terrainVAO);
+		glDeleteBuffers(1, &terrainVBO);
+		glDeleteBuffers(1, &terrainEBO);
 	}
 };
 
