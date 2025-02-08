@@ -26,6 +26,9 @@
 #include <random>
 #include <numeric>
 
+bool wireframeView = false;
+bool key1WasPressed = false;
+
 SimulationParams simulationParams;
 
 class Boid {
@@ -388,7 +391,8 @@ public:
 		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 
 		// Reset to filled polygons
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		if (!wireframeView)
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
 
 	~ProceduralTerrain() {
@@ -604,6 +608,17 @@ void processInput(GLFWwindow* window)
 		spaceshipDir = glm::vec3(glm::eulerAngleY(angleSpeed) * glm::vec4(spaceshipDir, 0));
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		spaceshipDir = glm::vec3(glm::eulerAngleY(-angleSpeed) * glm::vec4(spaceshipDir, 0));
+
+	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
+		key1WasPressed = true;
+	}
+	else {
+		if (key1WasPressed) {
+			wireframeView = !wireframeView;
+			key1WasPressed = false;
+		}
+	}
+
 
 	cameraPos = spaceshipPos - 1.5 * spaceshipDir + glm::vec3(0, 1, 0) * 0.5f;
 	cameraDir = spaceshipDir;
