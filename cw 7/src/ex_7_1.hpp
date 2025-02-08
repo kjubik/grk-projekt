@@ -568,7 +568,7 @@ void init(GLFWwindow* window)
 	viewLoc = glGetUniformLocation(boidShader, "view");
 	projectionLoc = glGetUniformLocation(boidShader, "projection");
 
-	terrain = new ProceduralTerrain(10.0f, 10);
+	terrain = new ProceduralTerrain(50.0f, 20);
 
 	//flock = Flock(simulationParams.boidNumber, boidVAO);
 }
