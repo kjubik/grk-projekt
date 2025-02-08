@@ -588,7 +588,7 @@ void init(GLFWwindow* window)
 	terrainModelLoc = glGetUniformLocation(terrainShader, "model");
 	terrainColorLoc = glGetUniformLocation(terrainShader, "objectColor");
 
-	// flock = Flock(simulationParams.boidNumber, boidVAO);
+	 flock = Flock(simulationParams.boidNumber, boidVAO);
 }
 
 void shutdown(GLFWwindow* window)
@@ -650,7 +650,7 @@ void renderLoop(GLFWwindow* window) {
 	{
 		processInput(window);
 		renderScene(window);
-		//flock.update(simulationParams.deltaTime);
+		flock.update(simulationParams.deltaTime);
 		glfwPollEvents();
 	}
 }
