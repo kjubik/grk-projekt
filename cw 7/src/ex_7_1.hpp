@@ -307,8 +307,8 @@ public:
 		vertices.clear();
 		indices.clear();
 
-		float frequency = 0.1f;
-		float heightScale = 10.0f;
+		float frequency = .1f; // ammount of peeks
+		float heightScale = 10.0f; // height of peeks
 
 		// Generate vertices
 		for (int z = 0; z <= resolution; ++z) {
