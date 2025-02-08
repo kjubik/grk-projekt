@@ -35,12 +35,15 @@ class Boid {
 public:
 	glm::vec3 position;
 	glm::vec3 velocity;
-	GLuint VAO;
+	glm::vec3 scale;
+	Core::RenderContext modelContext;
 
 	static constexpr float MAX_SPEED = 2.0f;
 	static constexpr float MIN_SPEED = 0.2f;
 
-	Boid(glm::vec3 pos, glm::vec3 vel, GLuint vao) : position(pos), velocity(vel), VAO(vao) {}
+	Boid(glm::vec3 pos, glm::vec3 vel, const Core::RenderContext& context, glm::vec3 scl = glm::vec3(1.0f))
+		: position(pos), velocity(vel), modelContext(context), scale(scl) {
+	}
 
 	void update(float deltaTime, const glm::vec3& acceleration) {
 		position += velocity * deltaTime;
@@ -50,26 +53,29 @@ public:
 		limitSpeed();
 	}
 
-	void draw(GLuint shaderProgram, GLuint modelLoc, const glm::mat4& view, const glm::mat4& projection, GLuint viewLoc, GLuint projectionLoc) {
+	void draw(GLuint shaderProgram, GLuint modelLoc, const glm::mat4& view,
+		const glm::mat4& projection, GLuint viewLoc, GLuint projectionLoc) {
 		glUseProgram(shaderProgram);
 
 		GLint inputColorLocation = glGetUniformLocation(shaderProgram, "inputColor");
-		glUniform3f(inputColorLocation, 1.0f, 0.0f, 0.0f);
+		glUniform3f(inputColorLocation, 0.7f, 0.7f, 0.7f);
 
 		glm::mat4 rotationMatrix = getRotationMatrixFromVelocity(velocity);
 
-		glm::mat4 model = glm::translate(glm::mat4(1.0f), position) * rotationMatrix;
+		glm::mat4 model = glm::translate(glm::mat4(1.0f), position) * rotationMatrix * glm::scale(glm::mat4(1.0f), scale);
+
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 18);
-		glBindVertexArray(0);
+		Core::DrawContext(modelContext);
+
+		glUseProgram(0);
 	}
+
 private:
 	glm::mat4 getRotationMatrixFromVelocity(const glm::vec3& velocity) {
-		glm::vec3 forward = glm::vec3(0.0f, 1.0f, 0.0f);
+		glm::vec3 forward = glm::vec3(0.0f, -1.0f, 0.0f);
 
 		glm::vec3 normalizedVelocity = glm::normalize(velocity);
 		if (glm::length(normalizedVelocity) < 1e-6f) {
@@ -129,29 +135,28 @@ private:
 			velocity = glm::normalize(velocity) * MIN_SPEED;
 		}
 	}
-};
+	};
 
 class Flock {
 public:
 	std::vector<Boid> boids;
 	Flock() {}
 
-	Flock(int numBoids, GLuint VAO) {
+	Flock(int numBoids, const Core::RenderContext& modelContext) {
 		for (int i = 0; i < numBoids; ++i) {
-			glm::vec3 position(
+			glm::vec3 position = glm::vec3(
 				static_cast<float>(std::rand()) / RAND_MAX * 4.0f - 2.0f,
 				static_cast<float>(std::rand()) / RAND_MAX * 4.0f - 2.0f,
 				static_cast<float>(std::rand()) / RAND_MAX * 4.0f - 2.0f
 			);
 
-			glm::vec3 velocity(
+			glm::vec3 velocity = glm::normalize(glm::vec3(
 				static_cast<float>(std::rand()) / RAND_MAX * 2.0f - 1.0f,
 				static_cast<float>(std::rand()) / RAND_MAX * 2.0f - 1.0f,
 				static_cast<float>(std::rand()) / RAND_MAX * 2.0f - 1.0f
-			);
-			velocity = glm::normalize(velocity) * (static_cast<float>(std::rand()) / RAND_MAX * 2.0f);
+			)) * (static_cast<float>(std::rand()) / RAND_MAX * 2.0f);
 
-			boids.emplace_back(position, velocity, VAO);
+			boids.emplace_back(position, velocity, modelContext, glm::vec3(simulationParams.boidModelScale));
 		}
 	}
 
@@ -459,7 +464,8 @@ GLuint programProcTex;
 Core::Shader_Loader shaderLoader;
 
 Core::RenderContext shipContext;
-Core::RenderContext sphereContext;
+Core::RenderContext birdContext;
+Core::RenderContext treeContext;
 
 glm::vec3 spaceshipPos = glm::vec3(-15.f, 0, 0);
 glm::vec3 spaceshipDir = glm::vec3(1.f, 0.f, 0.f);
@@ -559,6 +565,12 @@ void renderScene(GLFWwindow* window)
 	if (terrain)
 		terrain->render(terrainShader, projection, view, glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -10.f, 0.0f)));
 
+	glm::mat4 treeModelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(2.5f));
+	treeModelMatrix = glm::translate(treeModelMatrix, glm::vec3(0.0f, -4.0f, 0.0f));
+	drawObjectColor(treeContext, treeModelMatrix, glm::vec3(1.0f, 1.0f, 1.0f));
+
+	drawSliderWidget(&simulationParams);
+
 	glUseProgram(0);
 	glfwSwapBuffers(window);
 }
@@ -592,7 +604,8 @@ void init(GLFWwindow* window)
 	programEarth = shaderLoader.CreateProgram("shaders/shader_5_1_tex.vert", "shaders/shader_5_1_tex.frag");
 	programProcTex = shaderLoader.CreateProgram("shaders/shader_5_1_tex.vert", "shaders/shader_5_1_tex.frag");
 
-	loadModelToContext("./models/sphere.objj", sphereContext);
+	loadModelToContext("./models/bird.objj", birdContext);
+	loadModelToContext("./models/tree.objj", treeContext);
 
 	setupBoidVAOandVBO(boidVAO, boidVBO, boidVertices, sizeof(boidVertices));
 	setupBoundingBox(boundingBoxVAO, boundingBoxVBO, boundingBoxEBO);
@@ -610,8 +623,10 @@ void init(GLFWwindow* window)
 	terrainViewLoc = glGetUniformLocation(terrainShader, "view");
 	terrainModelLoc = glGetUniformLocation(terrainShader, "model");
 	terrainColorLoc = glGetUniformLocation(terrainShader, "objectColor");
+  
+	initWidget(window);
 
-	 flock = Flock(simulationParams.boidNumber, boidVAO);
+	flock = Flock(simulationParams.boidNumber, birdContext);
 }
 
 void shutdown(GLFWwindow* window)
@@ -676,4 +691,5 @@ void renderLoop(GLFWwindow* window) {
 		flock.update(simulationParams.deltaTime);
 		glfwPollEvents();
 	}
+	destroyWidget();
 }

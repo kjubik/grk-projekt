@@ -22,6 +22,9 @@
     <Filter Include="Source Files\boids">
       <UniqueIdentifier>{1ec7b133-2949-4127-ba9e-856c047a2e47}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ImGui">
+      <UniqueIdentifier>{e36caec9-7d5e-4942-9066-4bd1c9f602a4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Render_Utils.cpp">
@@ -53,6 +56,27 @@
     </ClCompile>
     <ClCompile Include="src\SOIL\image_helper.c">
       <Filter>Source Files\SOIL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dependencies\imgui\backends\imgui_impl_glfw.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dependencies\imgui\backends\imgui_impl_opengl3.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dependencies\imgui\imgui.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dependencies\imgui\imgui_demo.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dependencies\imgui\imgui_draw.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dependencies\imgui\imgui_tables.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dependencies\imgui\imgui_widgets.cpp">
+      <Filter>ImGui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -119,6 +143,18 @@
       <Filter>Shader Files</Filter>
     </None>
     <None Include="shaders\shader_5_1_tex.frag">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="shaders\boid.frag">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="shaders\boid.vert">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="shaders\line.frag">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="shaders\line.vert">
       <Filter>Shader Files</Filter>
     </None>
   </ItemGroup>
