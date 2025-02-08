@@ -61,8 +61,8 @@ void drawBoundingBox(glm::mat4 view, glm::mat4 projection, GLuint lineShader, GL
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-    glBindVertexArray(boundingBoxVAO); // mucho importante
-    glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0); // mucho importante
+    glBindVertexArray(boundingBoxVAO);
+    glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 }
 
