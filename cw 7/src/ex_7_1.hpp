@@ -377,6 +377,15 @@ public:
 	void render(GLuint shaderProgram, const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model) {
 		glUseProgram(shaderProgram);
 
+		float minHeight = std::numeric_limits<float>::max();
+		float maxHeight = std::numeric_limits<float>::lowest();
+
+		for (const auto& vertex : vertices) {
+			float height = vertex.y;
+			minHeight = std::min(minHeight, height);
+			maxHeight = std::max(maxHeight, height);
+		}
+
 		// Set matrices
 		GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
 		GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
@@ -392,17 +401,34 @@ public:
 		glBindVertexArray(terrainVAO);
 
 		if (wireframeOnlyView) {
-			// Render wireframe
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			glLineWidth(2.0f);
-			glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f);  // White color for wireframe
+			glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f);
 			glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		} else {
-			// Render filled terrain
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-			glUniform3f(colorLoc, 0.2f, 0.5f, 0.3f);  // Green-ish color for terrain
-			glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+
+			for (size_t i = 0; i < indices.size() / 3; ++i) {
+				unsigned int index1 = indices[i * 3];
+				unsigned int index2 = indices[i * 3 + 1];
+				unsigned int index3 = indices[i * 3 + 2];
+
+				glm::vec3 vertex1 = vertices[index1];
+				glm::vec3 vertex2 = vertices[index2];
+				glm::vec3 vertex3 = vertices[index3];
+
+				float avgHeight = (vertex1.y + vertex2.y + vertex3.y) / 3.0f;
+
+				float normalizedHeight = (avgHeight - minHeight) / (maxHeight - minHeight);
+				normalizedHeight = glm::clamp(normalizedHeight, 0.0f, 1.0f);
+				glm::vec3 color = glm::vec3(normalizedHeight);
+
+				// TODO: use different textures based on normalizedHeight
+
+				glUniform3f(colorLoc, color.x, color.y, color.z);
+				glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, (void*)(i * 3 * sizeof(unsigned int)));
+			}
 		}
 	}
 
