@@ -43,11 +43,16 @@ float pitch = 0.0f;
 float lastX = 600.0f / 2.0f;
 float lastY = 600.0f / 2.0f;
 bool firstMouse = true;
+bool spaceWasPressed = false;
 
 const float mouseSensitivity = 0.1f;
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
+	if (cursorEnabled) {
+		return;
+	}
+
 	if (firstMouse) {
 		lastX = xpos;
 		lastY = ypos;
@@ -341,14 +346,19 @@ void processInput(GLFWwindow* window)
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-		cursorEnabled = true;
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		if (!spaceWasPressed) {
+			cursorEnabled = !cursorEnabled;
+			glfwSetInputMode(window, GLFW_CURSOR,
+				cursorEnabled ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+
+			if (!cursorEnabled) {
+				firstMouse = true;
+			}
+			spaceWasPressed = true;
+		}
 	}
 	else {
-		if (cursorEnabled) {
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-			cursorEnabled = false;
-		}
+		spaceWasPressed = false;
 	}
 }
 
