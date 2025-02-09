@@ -39,6 +39,7 @@
     <ClInclude Include="src\objload.h" />
     <ClInclude Include="src\Render_Utils.h" />
     <ClInclude Include="src\Shader_Loader.h" />
+    <ClInclude Include="src\skybox\skybox.hpp" />
     <ClInclude Include="src\SOIL\image_DXT.h" />
     <ClInclude Include="src\SOIL\image_helper.h" />
     <ClInclude Include="src\SOIL\SOIL.h" />
@@ -61,6 +62,8 @@
     <None Include="shaders\shader_5_1_tex.vert" />
     <None Include="shaders\shader_5_sun.frag" />
     <None Include="shaders\shader_5_sun.vert" />
+    <None Include="shaders\skybox.frag" />
+    <None Include="shaders\skybox.vert" />
     <None Include="shaders\terrain.frag" />
     <None Include="shaders\terrain.vert" />
   </ItemGroup>

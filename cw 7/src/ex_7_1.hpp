@@ -26,6 +26,8 @@
 #include <random>
 #include <numeric>
 
+#include "SOIL/SOIL.h"
+
 bool wireframeOnlyView = false;
 bool key1WasPressed = false;
 bool key2WasPressed = false;
@@ -128,6 +130,49 @@ GLuint projectionLoc;
 GLuint terrainProjectionLoc, terrainViewLoc, terrainModelLoc, terrainColorLoc;
 GLuint terrainTexture;
 
+GLuint skyboxTexture;
+GLuint skyboxShader;
+Core::RenderContext skyboxCube;
+
+
+std::vector<std::string> skyboxFaces = {
+	"./textures/skybox/clouds/clouds1_east.bmp",
+	"./textures/skybox/clouds/clouds1_west.bmp",
+	"./textures/skybox/clouds/clouds1_up.bmp",
+	"./textures/skybox/clouds/clouds1_down.bmp",
+	"./textures/skybox/clouds/clouds1_north.bmp",
+	"./textures/skybox/clouds/clouds1_south.bmp",
+};
+
+
+GLuint loadCubemap(const std::vector<std::string>& faces) {
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+	int width, height, nrChannels;
+	for (size_t i = 0; i < faces.size(); i++) {
+		unsigned char* data = SOIL_load_image(faces[i].c_str(), &width, &height, &nrChannels, SOIL_LOAD_RGBA);
+		if (data) {
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+			std::cout << "Loaded: " << faces[i] << std::endl;
+		}
+		else {
+			std::cerr << "Failed to load: " << faces[i] << std::endl;
+		}
+		SOIL_free_image_data(data);
+	}
+
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	return textureID;
+}
+
+
 glm::mat4 createCameraMatrix()
 {
 	glm::vec3 cameraSide = glm::normalize(glm::cross(cameraDir, glm::vec3(0.f, 1.f, 0.f)));
@@ -148,7 +193,7 @@ glm::mat4 createPerspectiveMatrix()
 {
 	glm::mat4 perspectiveMatrix;
 	float n = 0.05;
-	float f = 50.;
+	float f = 1000.;
 	float a1 = glm::min(aspectRatio, 1.f);
 	float a2 = glm::min(1 / aspectRatio, 1.f);
 	perspectiveMatrix = glm::mat4({
@@ -187,12 +232,31 @@ void drawObjectTexture(Core::RenderContext& context, glm::mat4 modelMatrix, GLui
 	Core::DrawContext(context);
 }
 
+
+void drawSkybox() {
+	glDepthFunc(GL_LEQUAL);
+	glDepthMask(GL_FALSE);
+	glUseProgram(skyboxShader);
+
+	glm::mat4 viewProjectionMatrix = createPerspectiveMatrix() * glm::mat4(glm::mat3(createCameraMatrix()));
+	glUniformMatrix4fv(glGetUniformLocation(skyboxShader, "viewProjection"), 1, GL_FALSE, &viewProjectionMatrix[0][0]);
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
+	Core::DrawContext(skyboxCube);
+
+	glDepthMask(GL_TRUE);
+	glUseProgram(0);
+}
+
+
 void renderScene(GLFWwindow* window)
 {
 	glClearColor(0.1f, 0.3f, 0.6f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glm::mat4 transformation;
 	float time = glfwGetTime();
+
+	drawSkybox();
 
 	glm::mat4 projection = createPerspectiveMatrix();
 	glm::mat4 view = createCameraMatrix();
@@ -287,6 +351,10 @@ void init(GLFWwindow* window)
 	initWidget(window);
 
 	flock = Flock(&simulationParams, terrain, birdContext, gradientTextures);
+
+	skyboxShader = shaderLoader.CreateProgram("shaders/skybox.vert", "shaders/skybox.frag");
+	skyboxTexture = loadCubemap(skyboxFaces);
+	loadModelToContext("./models/cube.objj", skyboxCube);
 }
 
 void shutdown(GLFWwindow* window)
