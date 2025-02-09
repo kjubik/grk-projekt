@@ -131,12 +131,12 @@ Core::RenderContext skyboxCube;
 
 
 std::vector<std::string> skyboxFaces = {
-	"./textures/skybox/mountain/posx.jpg",
-	"./textures/skybox/mountain/negx.jpg",
-	"./textures/skybox/mountain/posy.jpg",
-	"./textures/skybox/mountain/negy.jpg",
-	"./textures/skybox/mountain/posz.jpg",
-	"./textures/skybox/mountain/negz.jpg",
+	"./textures/skybox/clouds/clouds1_east.bmp",
+	"./textures/skybox/clouds/clouds1_west.bmp",
+	"./textures/skybox/clouds/clouds1_up.bmp",
+	"./textures/skybox/clouds/clouds1_down.bmp",
+	"./textures/skybox/clouds/clouds1_north.bmp",
+	"./textures/skybox/clouds/clouds1_south.bmp",
 };
 
 
