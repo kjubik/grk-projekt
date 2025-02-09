@@ -32,6 +32,7 @@ SimulationParams simulationParams;
 
 glm::vec3 cameraPos = glm::vec3(-15.f, 0, 0);
 glm::vec3 cameraDir = glm::vec3(1.f, 0.f, 0.f);
+GLuint boidTextureID;
 
 class Boid {
 public:
@@ -59,6 +60,7 @@ public:
 		const glm::mat4& projection, GLuint viewLoc, GLuint projectionLoc)
 	{
 		glUseProgram(shaderProgram);
+		Core::SetActiveTexture(boidTextureID, "boidTexture", shaderProgram, 0);
 
 		GLint objectColorLoc = glGetUniformLocation(shaderProgram, "objectColor");
 		glUniform3f(objectColorLoc, 0.7f, 0.7f, 0.7f);
@@ -623,6 +625,8 @@ void init(GLFWwindow* window)
 	setupBoidVAOandVBO(boidVAO, boidVBO, boidVertices, sizeof(boidVertices));
 	setupBoundingBox(boundingBoxVAO, boundingBoxVBO, boundingBoxEBO);
 	terrain = new ProceduralTerrain(150.0f, 50);
+
+	boidTextureID = Core::LoadTexture("textures/bird.png");
 
 	boidShader = shaderLoader.CreateProgram("shaders/boid.vert", "shaders/boid.frag");\
 	basicBoidShader = shaderLoader.CreateProgram("shaders/boid_basic.vert", "shaders/boid_basic.frag");
