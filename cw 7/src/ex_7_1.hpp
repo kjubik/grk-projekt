@@ -43,11 +43,16 @@ float pitch = 0.0f;
 float lastX = 600.0f / 2.0f;
 float lastY = 600.0f / 2.0f;
 bool firstMouse = true;
+bool escapeWasPressed = false;
 
 const float mouseSensitivity = 0.1f;
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
+	if (cursorEnabled) {
+		return;
+	}
+
 	if (firstMouse) {
 		lastX = xpos;
 		lastY = ypos;
@@ -300,8 +305,8 @@ void processInput(GLFWwindow* window)
 	float angleSpeed = 0.075f;
 	float moveSpeed = 0.1f;
 
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, true);
+	/*if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, true);*/
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		cameraPos += cameraDir * moveSpeed;
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -310,9 +315,9 @@ void processInput(GLFWwindow* window)
 		cameraPos -= cameraSide * moveSpeed;
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		cameraPos += cameraSide * moveSpeed;
-	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
 		cameraPos += cameraUp * moveSpeed;
-	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 		cameraPos -= cameraUp * moveSpeed;
 
 	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
@@ -340,15 +345,20 @@ void processInput(GLFWwindow* window)
 		key2WasPressed = false;
 	}
 
-	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-		cursorEnabled = true;
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+		if (!escapeWasPressed) {
+			cursorEnabled = !cursorEnabled;
+			glfwSetInputMode(window, GLFW_CURSOR,
+				cursorEnabled ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+
+			if (!cursorEnabled) {
+				firstMouse = true;
+			}
+			escapeWasPressed = true;
+		}
 	}
 	else {
-		if (cursorEnabled) {
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-			cursorEnabled = false;
-		}
+		escapeWasPressed = false;
 	}
 }
 
