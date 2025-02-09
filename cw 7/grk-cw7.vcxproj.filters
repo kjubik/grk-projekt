@@ -175,5 +175,11 @@
     <None Include="shaders\boid_basic.vert">
       <Filter>Shader Files</Filter>
     </None>
+    <None Include="skybox.frag">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="skybox.vert">
+      <Filter>Shader Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
