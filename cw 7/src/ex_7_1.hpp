@@ -38,9 +38,9 @@ glm::vec3 cameraDir = glm::vec3(1.f, 0.f, 0.f);
 GLuint boidTextureID;
 GLuint gradientTextures[10];
 
-float yaw = -90.0f;
+float yaw = 0.0f;
 float pitch = 0.0f;
-float lastX = 800.0f / 2.0f;
+float lastX = 600.0f / 2.0f;
 float lastY = 600.0f / 2.0f;
 bool firstMouse = true;
 
