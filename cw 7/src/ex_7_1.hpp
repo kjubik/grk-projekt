@@ -143,7 +143,7 @@ glm::mat4 createPerspectiveMatrix()
 {
 	glm::mat4 perspectiveMatrix;
 	float n = 0.05;
-	float f = 50.;
+	float f = 100.;
 	float a1 = glm::min(aspectRatio, 1.f);
 	float a2 = glm::min(1 / aspectRatio, 1.f);
 	perspectiveMatrix = glm::mat4({
