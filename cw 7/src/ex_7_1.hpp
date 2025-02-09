@@ -401,12 +401,10 @@ public:
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
-		// Vertex positions
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0); // Stride of 5 floats
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 		glEnableVertexAttribArray(0);
 
-		// UV coordinates
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float))); // Offset of 3 floats
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 		glEnableVertexAttribArray(1);
 
 		glBindVertexArray(0);
@@ -435,9 +433,9 @@ public:
 		GLint colorLoc = glGetUniformLocation(shaderProgram, "objectColor");
 
 		if (true) {
-			Core::SetActiveTexture(textureID, "terrainTexture", shaderProgram, 0); // Set active texture
+			Core::SetActiveTexture(textureID, "terrainTexture", shaderProgram, 0);
 			glBindVertexArray(terrainVAO);
-			glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0); // Draw all at once
+			glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 			return;
 		}
 
