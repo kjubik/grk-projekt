@@ -318,6 +318,7 @@ private:
 	float planeSize;
 	int resolution;
 	PerlinNoise perlinNoise;
+	std::vector<glm::vec2> uvs;
 
 public:
 	ProceduralTerrain(float size = 10.0f, int res = 10)
@@ -344,6 +345,10 @@ public:
 				noise = (noise + 1.0f) / 2.0f * heightScale;
 
 				vertices.push_back(glm::vec3(xPos, noise, zPos));
+
+				float u = x / static_cast<float>(resolution);
+				float v = z / static_cast<float>(resolution);
+				uvs.push_back(glm::vec2(u, v));
 			}
 		}
 
@@ -381,21 +386,33 @@ public:
 
 		glGenBuffers(1, &terrainVBO);
 		glBindBuffer(GL_ARRAY_BUFFER, terrainVBO);
-		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3),
-			vertices.data(), GL_STATIC_DRAW);
+		
+		std::vector<float> vertexData;
+		for (size_t i = 0; i < vertices.size(); ++i) {
+			vertexData.push_back(vertices[i].x);
+			vertexData.push_back(vertices[i].y);
+			vertexData.push_back(vertices[i].z);
+			vertexData.push_back(uvs[i].x);
+			vertexData.push_back(uvs[i].y);
+		}
+		glBufferData(GL_ARRAY_BUFFER, vertexData.size() * sizeof(float), vertexData.data(), GL_STATIC_DRAW);
 
 		glGenBuffers(1, &terrainEBO);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint),
-			indices.data(), GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+		// Vertex positions
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0); // Stride of 5 floats
 		glEnableVertexAttribArray(0);
+
+		// UV coordinates
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float))); // Offset of 3 floats
+		glEnableVertexAttribArray(1);
 
 		glBindVertexArray(0);
 	}
 
-	void render(GLuint shaderProgram, const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model) {
+    void render(GLuint shaderProgram, const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model, GLuint textureID) {
 		glUseProgram(shaderProgram);
 
 		float minHeight = std::numeric_limits<float>::max();
@@ -414,11 +431,18 @@ public:
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		
+					
 		GLint colorLoc = glGetUniformLocation(shaderProgram, "objectColor");
 
-		glBindVertexArray(terrainVAO);
+		if (true) {
+			Core::SetActiveTexture(textureID, "terrainTexture", shaderProgram, 0); // Set active texture
+			glBindVertexArray(terrainVAO);
+			glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0); // Draw all at once
+			return;
+		}
 
+		glBindVertexArray(terrainVAO);
+			
 		if (wireframeOnlyView) {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			glLineWidth(2.0f);
@@ -449,7 +473,7 @@ public:
 				glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, (void*)(i * 3 * sizeof(unsigned int)));
 			}
 		}
-	}
+    }
 
 	~ProceduralTerrain() {
 		glDeleteVertexArrays(1, &terrainVAO);
@@ -501,6 +525,7 @@ GLuint viewLoc;
 GLuint projectionLoc;
 
 GLuint terrainProjectionLoc, terrainViewLoc, terrainModelLoc, terrainColorLoc;
+GLuint terrainTexture;
 
 glm::mat4 createCameraMatrix()
 {
@@ -575,7 +600,7 @@ void renderScene(GLFWwindow* window)
 	flock.draw(activeBoidShader, modelLoc, view, projection, viewLoc, projectionLoc);
 
 	if (terrain)
-		terrain->render(terrainShader, projection, view, glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -10.f, 0.0f)));
+		terrain->render(terrainShader, projection, view, glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -10.f, 0.0f)), terrainTexture);
 
 	//glm::mat4 treeModelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(2.5f));
 	//treeModelMatrix = glm::translate(treeModelMatrix, glm::vec3(0.0f, -4.0f, 0.0f));
@@ -630,6 +655,8 @@ void init(GLFWwindow* window)
 		std::string texturePath = "textures/gradient_" + std::to_string(i+1) + ".png";
 		gradientTextures[i] = Core::LoadTexture(texturePath.c_str());
 	}
+
+	terrainTexture = Core::LoadTexture("textures/terrain/grass.jpg");
 
 	setupBoidVAOandVBO(boidVAO, boidVBO, boidVertices, sizeof(boidVertices));
 	setupBoundingBox(boundingBoxVAO, boundingBoxVBO, boundingBoxEBO);

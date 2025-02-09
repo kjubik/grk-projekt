@@ -1,9 +1,13 @@
 #version 330 core
+in vec3 FragPos;  
+in vec2 TexCoords; // UV coordinates
 out vec4 FragColor;
 
-uniform vec3 objectColor;  // Color for the terrain or wireframe
+uniform sampler2D terrainTexture; // Texture sampler
 
 void main()
 {
-    FragColor = vec4(objectColor, 1.0);
+    vec4 texColor = texture(terrainTexture, TexCoords); // Sample the texture
+    FragColor = texColor; // Use the sampled color
+    // You can also add lighting calculations here if needed.
 }
