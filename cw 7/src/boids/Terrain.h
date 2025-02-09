@@ -75,6 +75,8 @@ private:
 	float planeSize;
 	int resolution;
 	PerlinNoise perlinNoise;
+	std::vector<glm::vec2> uvs;
+
 public:
 	bool wireframeOnlyView = false;
 	ProceduralTerrain(float size = 10.0f, int res = 10)
@@ -102,7 +104,11 @@ public:
 				noise = (noise + 1.0f) / 2.0f * heightScale;
 
 				vertices.push_back(glm::vec3(xPos, noise, zPos));
-				heightMap[z][x] = noise;  // Store the height
+				heightMap[z][x] = noise;
+
+				float u = x / static_cast<float>(resolution);
+				float v = z / static_cast<float>(resolution);
+				uvs.push_back(glm::vec2(u, v));
 			}
 		}
 
@@ -140,21 +146,31 @@ public:
 
 		glGenBuffers(1, &terrainVBO);
 		glBindBuffer(GL_ARRAY_BUFFER, terrainVBO);
-		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3),
-			vertices.data(), GL_STATIC_DRAW);
+
+		std::vector<float> vertexData;
+		for (size_t i = 0; i < vertices.size(); ++i) {
+			vertexData.push_back(vertices[i].x);
+			vertexData.push_back(vertices[i].y);
+			vertexData.push_back(vertices[i].z);
+			vertexData.push_back(uvs[i].x);
+			vertexData.push_back(uvs[i].y);
+		}
+		glBufferData(GL_ARRAY_BUFFER, vertexData.size() * sizeof(float), vertexData.data(), GL_STATIC_DRAW);
 
 		glGenBuffers(1, &terrainEBO);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint),
-			indices.data(), GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 		glEnableVertexAttribArray(0);
+
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+		glEnableVertexAttribArray(1);
 
 		glBindVertexArray(0);
 	}
 
-	void render(GLuint shaderProgram, const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model) {
+	void render(GLuint shaderProgram, const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model, GLuint textureID) {
 		glUseProgram(shaderProgram);
 
 		float minHeight = std::numeric_limits<float>::max();
@@ -175,6 +191,13 @@ public:
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
 		GLint colorLoc = glGetUniformLocation(shaderProgram, "objectColor");
+
+		if (true) {
+			Core::SetActiveTexture(textureID, "terrainTexture", shaderProgram, 0);
+			glBindVertexArray(terrainVAO);
+			glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+			return;
+		}
 
 		glBindVertexArray(terrainVAO);
 
@@ -211,25 +234,35 @@ public:
 		}
 	}
 
-
 	void translateTerrain(const glm::vec3& offset) {
-		// Apply translation to each vertex
-		for (auto& vertex : vertices) {
-			vertex += offset;  // Apply the translation to x, y, and z
+		for (size_t i = 0; i < vertices.size(); ++i) {
+			vertices[i] += offset;
+
+			// Adjust UVs based on X and Z translation
+			uvs[i].x += offset.x / planeSize;
+			uvs[i].y += offset.z / planeSize;
 		}
 
-		// Update the heightMap only for the Y-offset (vertical movement)
 		if (offset.y != 0.0f) {
 			for (auto& row : heightMap) {
 				for (auto& height : row) {
-					height += offset.y;  // Adjust only the height values
+					height += offset.y;
 				}
 			}
 		}
 
-		// Update the VBO with new vertex positions
 		glBindBuffer(GL_ARRAY_BUFFER, terrainVBO);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(glm::vec3), vertices.data());
+
+		std::vector<float> vertexData;
+		for (size_t i = 0; i < vertices.size(); ++i) {
+			vertexData.push_back(vertices[i].x);
+			vertexData.push_back(vertices[i].y);
+			vertexData.push_back(vertices[i].z);
+			vertexData.push_back(uvs[i].x);
+			vertexData.push_back(uvs[i].y);
+		}
+
+		glBufferSubData(GL_ARRAY_BUFFER, 0, vertexData.size() * sizeof(float), vertexData.data());
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
