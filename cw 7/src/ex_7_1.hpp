@@ -229,7 +229,7 @@ void drawObjectTexture(Core::RenderContext& context, glm::mat4 modelMatrix, GLui
 
 
 void drawSkybox() {
-	glDepthFunc(GL_LEQUAL);  // Add this line
+	glDepthFunc(GL_LEQUAL);
 	glDepthMask(GL_FALSE);
 	glUseProgram(skyboxShader);
 
