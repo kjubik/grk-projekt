@@ -19,6 +19,8 @@
 
 #include "boids/simulation.h"
 #include "boids/vertices.h"
+#include "boids/terrain.h"
+#include "boids/Boid.h"
 #include "utils.h"
 
 #include <random>
@@ -27,6 +29,7 @@
 bool wireframeOnlyView = false;
 bool key1WasPressed = false;
 bool key2WasPressed = false;
+bool cursorEnabled = false;
 
 SimulationParams simulationParams;
 
@@ -35,430 +38,46 @@ glm::vec3 cameraDir = glm::vec3(1.f, 0.f, 0.f);
 GLuint boidTextureID;
 GLuint gradientTextures[10];
 
-class Boid {
-public:
-	glm::vec3 position;
-	glm::vec3 velocity;
-	glm::vec3 scale;
-	Core::RenderContext modelContext;
-	GLuint textureID;
+float yaw = -90.0f;
+float pitch = 0.0f;
+float lastX = 800.0f / 2.0f;
+float lastY = 600.0f / 2.0f;
+bool firstMouse = true;
 
-	static constexpr float MAX_SPEED = 2.0f;
-	static constexpr float MIN_SPEED = 0.2f;
+const float mouseSensitivity = 0.1f;
 
-	Boid(glm::vec3 pos, glm::vec3 vel, const Core::RenderContext& context, glm::vec3 scl = glm::vec3(1.0f), GLuint texID = -1)
-		: position(pos), velocity(vel), modelContext(context), scale(scl), textureID(texID) {
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+	if (firstMouse) {
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
 	}
 
-	void update(float deltaTime, const glm::vec3& acceleration) {
-		position += velocity * deltaTime;
-		velocity += acceleration * deltaTime;
+	float xOffset = xpos - lastX;
+	float yOffset = lastY - ypos;
 
-		applyBounceForceFromBoundingBox(deltaTime);
-		limitSpeed();
-	}
+	lastX = xpos;
+	lastY = ypos;
 
-	void draw(GLuint shaderProgram, GLuint modelLoc, const glm::mat4& view,
-		const glm::mat4& projection, GLuint viewLoc, GLuint projectionLoc)
-	{
-		glUseProgram(shaderProgram);
-		Core::SetActiveTexture(textureID, "boidTexture", shaderProgram, 0);
+	xOffset *= mouseSensitivity;
+	yOffset *= mouseSensitivity;
 
-		GLint objectColorLoc = glGetUniformLocation(shaderProgram, "objectColor");
-		glUniform3f(objectColorLoc, 0.7f, 0.7f, 0.7f);
+	yaw += xOffset;
+	pitch += yOffset;
 
-		GLint lightPosLoc = glGetUniformLocation(shaderProgram, "lightPos");
-		glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightPos));
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+	if (pitch < -89.0f)
+		pitch = -89.0f;
 
-		GLint viewPosLoc = glGetUniformLocation(shaderProgram, "viewPos");
-		glUniform3fv(viewPosLoc, 1, glm::value_ptr(cameraPos));
+	glm::vec3 direction;
+	direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	direction.y = sin(glm::radians(pitch));
+	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
 
-		GLint lightColorLoc = glGetUniformLocation(shaderProgram, "lightColor");
-		glUniform3fv(lightColorLoc, 1, glm::value_ptr(lightColor));
-
-		glm::mat4 rotationMatrix = getRotationMatrixFromVelocity(velocity);
-		glm::mat4 model = glm::translate(glm::mat4(1.0f), position) *
-			rotationMatrix *
-			glm::scale(glm::mat4(1.0f), scale);
-
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-		glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-
-		Core::DrawContext(modelContext);
-
-		glUseProgram(0);
-	}
-private:
-	glm::mat4 getRotationMatrixFromVelocity(const glm::vec3& velocity) {
-		glm::vec3 forward = glm::vec3(0.0f, -1.0f, 0.0f);
-
-		glm::vec3 normalizedVelocity = glm::normalize(velocity);
-		if (glm::length(normalizedVelocity) < 1e-6f) {
-			throw std::invalid_argument("Velocity vector cannot be zero.");
-		}
-
-		if (glm::length(normalizedVelocity + forward) < 1e-6f) {
-			return glm::rotate(glm::mat4(1.0f), glm::pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f));
-		}
-
-		if (glm::length(glm::cross(forward, normalizedVelocity)) < 1e-6f) {
-			return glm::mat4(1.0f);
-		}
-
-		glm::vec3 rotationAxis = glm::normalize(glm::cross(forward, normalizedVelocity));
-
-		float cosTheta = glm::dot(forward, normalizedVelocity);
-		float theta = std::acos(glm::clamp(cosTheta, -1.0f, 1.0f));
-
-		glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), theta, rotationAxis);
-
-		return rotationMatrix;
-	}
-	void applyBounceForceFromBoundingBox(float deltaTime) {
-		glm::vec3 bounceForce(0.0f);
-
-		if (position.x < simulationParams.boundMin) {
-			bounceForce.x += simulationParams.bounceForce * (simulationParams.boundMin - position.x);
-		}
-		else if (position.x > simulationParams.boundMax) {
-			bounceForce.x -= simulationParams.bounceForce * (position.x - simulationParams.boundMax);
-		}
-
-		if (position.y < simulationParams.boundMin) {
-			bounceForce.y += simulationParams.bounceForce * (simulationParams.boundMin - position.y);
-		}
-		else if (position.y > simulationParams.boundMax) {
-			bounceForce.y -= simulationParams.bounceForce * (position.y - simulationParams.boundMax);
-		}
-
-		if (position.z < simulationParams.boundMin) {
-			bounceForce.z += simulationParams.bounceForce * (simulationParams.boundMin - position.z);
-		}
-		else if (position.z > simulationParams.boundMax) {
-			bounceForce.z -= simulationParams.bounceForce * (position.z - simulationParams.boundMax);
-		}
-
-		velocity += bounceForce * deltaTime;
-	}
-
-	void limitSpeed() {
-		float speed = glm::length(velocity);
-		if (speed > MAX_SPEED) {
-			velocity = glm::normalize(velocity) * MAX_SPEED;
-		}
-		else if (speed < MIN_SPEED) {
-			velocity = glm::normalize(velocity) * MIN_SPEED;
-		}
-	}
-	};
-
-class Flock {
-public:
-	std::vector<Boid> boids;
-	Flock() {}
-
-	Flock(int numBoids, const Core::RenderContext& modelContext) {
-		for (int i = 0; i < numBoids; ++i) {
-			glm::vec3 position = glm::vec3(
-				static_cast<float>(std::rand()) / RAND_MAX * 4.0f - 2.0f,
-				static_cast<float>(std::rand()) / RAND_MAX * 4.0f - 2.0f,
-				static_cast<float>(std::rand()) / RAND_MAX * 4.0f - 2.0f
-			);
-
-			glm::vec3 velocity = glm::normalize(glm::vec3(
-				static_cast<float>(std::rand()) / RAND_MAX * 2.0f - 1.0f,
-				static_cast<float>(std::rand()) / RAND_MAX * 2.0f - 1.0f,
-				static_cast<float>(std::rand()) / RAND_MAX * 2.0f - 1.0f
-			)) * (static_cast<float>(std::rand()) / RAND_MAX * 2.0f);
-
-			GLuint randomTextureID = gradientTextures[rand() % 10];
-
-			boids.emplace_back(position, velocity, modelContext, glm::vec3(simulationParams.boidModelScale), randomTextureID);
-		}
-	}
-
-	void update(float deltaTime) {
-		for (auto& boid : boids) {
-			glm::vec3 avoidance = computeAvoidance(boid);
-			glm::vec3 alignment = computeAlignment(boid);
-			glm::vec3 cohesion = computeCohesion(boid);
-			boid.update(deltaTime, avoidance + alignment + cohesion);
-		}
-	}
-
-	void draw(GLuint shaderProgram, GLuint modelLoc, const glm::mat4& view, const glm::mat4& projection, GLuint viewLoc, GLuint projectionLoc) {
-		for (auto& boid : boids) {
-			boid.draw(shaderProgram, modelLoc, view, projection, viewLoc, projectionLoc);
-		}
-	}
-private:
-	glm::vec3 computeAvoidance(const Boid& boid) {
-		glm::vec3 avoidance(0.0f);
-		int count = 0;
-
-		for (const auto& other : boids) {
-			if (&other == &boid) continue;
-
-			float distance = glm::length(boid.position - other.position);
-			if (distance < simulationParams.avoidRadius && distance > 0.0f) {
-				avoidance += glm::normalize(boid.position - other.position) / (distance * distance);
-				count++;
-			}
-		}
-
-		if (count > 0) {
-			avoidance /= static_cast<float>(count);
-			avoidance *= simulationParams.avoidForce;
-		}
-		return avoidance;
-	}
-
-	glm::vec3 computeAlignment(const Boid& boid) {
-		glm::vec3 averageVelocity(0.0f);
-		int count = 0;
-
-		for (const auto& other : boids) {
-			if (&other == &boid) continue;
-
-			float distance = glm::length(boid.position - other.position);
-			if (distance < simulationParams.alignRadius) {
-				averageVelocity += other.velocity;
-				count++;
-			}
-		}
-
-		if (count > 0) {
-			averageVelocity /= static_cast<float>(count);
-			averageVelocity = glm::normalize(averageVelocity) * simulationParams.alignForce;
-		}
-		return averageVelocity;
-	}
-
-	glm::vec3 computeCohesion(const Boid& boid) {
-		glm::vec3 centerOfMass(0.0f);
-		int count = 0;
-
-		for (const auto& other : boids) {
-			if (&other == &boid) continue;
-
-			float distance = glm::length(boid.position - other.position);
-			if (distance < simulationParams.cohesionRadius) {
-				centerOfMass += other.position;
-				count++;
-			}
-		}
-
-		if (count > 0) {
-			centerOfMass /= static_cast<float>(count);
-			glm::vec3 cohesionForce = glm::normalize(centerOfMass - boid.position) * simulationParams.cohesionForce;
-			return cohesionForce;
-		}
-
-		return glm::vec3(0.0f);
-	}
-};
-
-class PerlinNoise {
-private:
-	std::vector<int> p;
-
-	static float fade(float t) {
-		return t * t * t * (t * (t * 6 - 15) + 10);
-	}
-
-	static float lerp(float t, float a, float b) {
-		return a + t * (b - a);
-	}
-
-	static float grad(int hash, float x, float y, float z) {
-		int h = hash & 15;
-		float u = h < 8 ? x : y;
-		float v = h < 4 ? y : h == 12 || h == 14 ? x : z;
-		return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
-	}
-
-public:
-	PerlinNoise() {
-		p.resize(256);
-		std::iota(p.begin(), p.end(), 0);
-		std::shuffle(p.begin(), p.end(), std::default_random_engine());
-
-		p.insert(p.end(), p.begin(), p.end());
-	}
-
-	float noise(float x, float y, float z) const {
-		int X = (int)floor(x) & 255;
-		int Y = (int)floor(y) & 255;
-		int Z = (int)floor(z) & 255;
-
-		x -= floor(x);
-		y -= floor(y);
-		z -= floor(z);
-
-		float u = fade(x);
-		float v = fade(y);
-		float w = fade(z);
-
-		int A = p[X] + Y, AA = p[A] + Z, AB = p[A + 1] + Z;
-		int B = p[X + 1] + Y, BA = p[B] + Z, BB = p[B + 1] + Z;
-
-		return lerp(w, lerp(v, lerp(u, grad(p[AA], x, y, z), grad(p[BA], x - 1, y, z)),
-			lerp(u, grad(p[AB], x, y - 1, z), grad(p[BB], x - 1, y - 1, z))),
-			lerp(v, lerp(u, grad(p[AA + 1], x, y, z - 1), grad(p[BA + 1], x - 1, y, z - 1)),
-				lerp(u, grad(p[AB + 1], x, y - 1, z - 1), grad(p[BB + 1], x - 1, y - 1, z - 1))));
-	}
-};
-
-class ProceduralTerrain {
-private:
-	std::vector<glm::vec3> vertices;
-	std::vector<GLuint> indices;
-	GLuint terrainVAO, terrainVBO, terrainEBO;
-	float planeSize;
-	int resolution;
-	PerlinNoise perlinNoise;
-
-public:
-	ProceduralTerrain(float size = 10.0f, int res = 10)
-		: planeSize(size), resolution(res) {
-		generateTerrain();
-		setupMesh();
-	}
-
-	void generateTerrain() {
-		vertices.clear();
-		indices.clear();
-
-		float frequency = .1f; // ammount of peeks
-		float heightScale = 10.0f; // height of peeks
-
-		// Generate vertices
-		for (int z = 0; z <= resolution; ++z) {
-			for (int x = 0; x <= resolution; ++x) {
-				float xPos = (x / static_cast<float>(resolution)) * planeSize - (planeSize / 2.0f);
-				float zPos = (z / static_cast<float>(resolution)) * planeSize - (planeSize / 2.0f);
-
-				// Apply Perlin noise with scaling
-				float noise = perlinNoise.noise(xPos * frequency, 1.0f, zPos * frequency);
-				noise = (noise + 1.0f) / 2.0f * heightScale;
-
-				vertices.push_back(glm::vec3(xPos, noise, zPos));
-			}
-		}
-
-		for (int z = 0; z < resolution; ++z) {
-			for (int x = 0; x < resolution; ++x) {
-				int topLeft = z * (resolution + 1) + x;
-				int topRight = topLeft + 1;
-				int bottomLeft = (z + 1) * (resolution + 1) + x;
-				int bottomRight = bottomLeft + 1;
-
-				/*
-					0---1
-					|  /|
-					| / |
-					|/  |
-					2---3
-				*/
-
-				// First triangle (0-1-2)
-				indices.push_back(topLeft);
-				indices.push_back(bottomLeft);
-				indices.push_back(topRight);
-
-				// Second triangle (1-3-2)
-				indices.push_back(topRight);
-				indices.push_back(bottomLeft);
-				indices.push_back(bottomRight);
-			}
-		}
-	}
-
-	void setupMesh() {
-		glGenVertexArrays(1, &terrainVAO);
-		glBindVertexArray(terrainVAO);
-
-		glGenBuffers(1, &terrainVBO);
-		glBindBuffer(GL_ARRAY_BUFFER, terrainVBO);
-		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3),
-			vertices.data(), GL_STATIC_DRAW);
-
-		glGenBuffers(1, &terrainEBO);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint),
-			indices.data(), GL_STATIC_DRAW);
-
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-		glEnableVertexAttribArray(0);
-
-		glBindVertexArray(0);
-	}
-
-	void render(GLuint shaderProgram, const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model) {
-		glUseProgram(shaderProgram);
-
-		float minHeight = std::numeric_limits<float>::max();
-		float maxHeight = std::numeric_limits<float>::lowest();
-
-		for (const auto& vertex : vertices) {
-			float height = vertex.y;
-			minHeight = std::min(minHeight, height);
-			maxHeight = std::max(maxHeight, height);
-		}
-
-		GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
-		GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
-		GLint modelLoc = glGetUniformLocation(shaderProgram, "model");
-
-		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		
-		GLint colorLoc = glGetUniformLocation(shaderProgram, "objectColor");
-
-		glBindVertexArray(terrainVAO);
-
-		if (wireframeOnlyView) {
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			glLineWidth(2.0f);
-			glUniform3f(colorLoc, 0.8f, 0.0f, 0.8f);
-			glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		} else {
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-			for (size_t i = 0; i < indices.size() / 3; ++i) {
-				unsigned int index1 = indices[i * 3];
-				unsigned int index2 = indices[i * 3 + 1];
-				unsigned int index3 = indices[i * 3 + 2];
-
-				glm::vec3 vertex1 = vertices[index1];
-				glm::vec3 vertex2 = vertices[index2];
-				glm::vec3 vertex3 = vertices[index3];
-
-				float avgHeight = (vertex1.y + vertex2.y + vertex3.y) / 3.0f;
-
-				float normalizedHeight = (avgHeight - minHeight) / (maxHeight - minHeight);
-				normalizedHeight = glm::clamp(normalizedHeight, 0.0f, 1.0f);
-				glm::vec3 color = glm::vec3(normalizedHeight);
-
-				// TODO: use different textures based on normalizedHeight
-
-				glUniform3f(colorLoc, color.x, color.y, color.z);
-				glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, (void*)(i * 3 * sizeof(unsigned int)));
-			}
-		}
-	}
-
-	~ProceduralTerrain() {
-		glDeleteVertexArrays(1, &terrainVAO);
-		glDeleteBuffers(1, &terrainVBO);
-		glDeleteBuffers(1, &terrainEBO);
-	}
-};
-
-ProceduralTerrain* terrain;
+	cameraDir = glm::normalize(direction);
+}
 
 namespace texture {
 	GLuint earth;
@@ -488,6 +107,7 @@ GLuint VAO, VBO;
 
 float aspectRatio = 1.f;
 
+ProceduralTerrain* terrain;
 GLuint boidVAO, boidVBO;
 GLuint boundingBoxVAO, boundingBoxVBO, boundingBoxEBO;
 
@@ -572,10 +192,10 @@ void renderScene(GLFWwindow* window)
 	glm::mat4 view = createCameraMatrix();
 
 	drawBoundingBox(view, projection, boundBoxShader, boundingBoxVAO);
-	flock.draw(activeBoidShader, modelLoc, view, projection, viewLoc, projectionLoc);
+	flock.draw(activeBoidShader, modelLoc, view, projection, viewLoc, projectionLoc, cameraPos);
 
 	if (terrain)
-		terrain->render(terrainShader, projection, view, glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -10.f, 0.0f)));
+		terrain->render(terrainShader, projection, view, glm::mat4(1.0f));
 
 	//glm::mat4 treeModelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(2.5f));
 	//treeModelMatrix = glm::translate(treeModelMatrix, glm::vec3(0.0f, -4.0f, 0.0f));
@@ -626,6 +246,9 @@ void init(GLFWwindow* window)
 	loadModelToContext("./models/bird.objj", birdContext);
 	loadModelToContext("./models/tree.objj", treeContext);
 
+	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
 	for (int i = 0; i < 10; ++i) {
 		std::string texturePath = "textures/gradient_" + std::to_string(i+1) + ".png";
 		gradientTextures[i] = Core::LoadTexture(texturePath.c_str());
@@ -633,7 +256,9 @@ void init(GLFWwindow* window)
 
 	setupBoidVAOandVBO(boidVAO, boidVBO, boidVertices, sizeof(boidVertices));
 	setupBoundingBox(boundingBoxVAO, boundingBoxVBO, boundingBoxEBO);
+
 	terrain = new ProceduralTerrain(150.0f, 50);
+	terrain->translateTerrain(glm::vec3(0.0f, -14.0f, 0.0f));
 
 	boidShader = shaderLoader.CreateProgram("shaders/boid.vert", "shaders/boid.frag");
 	basicBoidShader = shaderLoader.CreateProgram("shaders/boid_basic.vert", "shaders/boid_basic.frag");
@@ -653,7 +278,7 @@ void init(GLFWwindow* window)
   
 	initWidget(window);
 
-	flock = Flock(simulationParams.boidNumber, birdContext);
+	flock = Flock(&simulationParams, terrain, birdContext, gradientTextures);
 }
 
 void shutdown(GLFWwindow* window)
@@ -672,32 +297,27 @@ void processInput(GLFWwindow* window)
 	float angleSpeed = 0.075f;
 	float moveSpeed = 0.1f;
 
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
-	}
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		cameraPos += cameraDir * moveSpeed;
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 		cameraPos -= cameraDir * moveSpeed;
-	if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
-		cameraPos += cameraSide * moveSpeed;
-	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
 		cameraPos -= cameraSide * moveSpeed;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		cameraPos += cameraSide * moveSpeed;
 	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
 		cameraPos += cameraUp * moveSpeed;
 	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
 		cameraPos -= cameraUp * moveSpeed;
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		cameraDir = glm::vec3(glm::eulerAngleY(angleSpeed) * glm::vec4(cameraDir, 0));
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		cameraDir = glm::vec3(glm::eulerAngleY(-angleSpeed) * glm::vec4(cameraDir, 0));
 
 	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
 		key1WasPressed = true;
 	}
 	else {
 		if (key1WasPressed) {
-			wireframeOnlyView = !wireframeOnlyView;
+			terrain->wireframeOnlyView = !terrain->wireframeOnlyView;
 			key1WasPressed = false;
 		}
 	}
@@ -715,6 +335,17 @@ void processInput(GLFWwindow* window)
 	}
 	else {
 		key2WasPressed = false;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+		cursorEnabled = true;
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	}
+	else {
+		if (cursorEnabled) {
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			cursorEnabled = false;
+		}
 	}
 }
 
