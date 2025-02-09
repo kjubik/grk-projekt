@@ -21,15 +21,17 @@
 #include "boids/vertices.h"
 #include "utils.h"
 
-#include <vector>
-#include <cmath>
 #include <random>
 #include <numeric>
 
 bool wireframeOnlyView = false;
 bool key1WasPressed = false;
+bool key2WasPressed = false;
 
 SimulationParams simulationParams;
+
+glm::vec3 cameraPos = glm::vec3(-15.f, 0, 0);
+glm::vec3 cameraDir = glm::vec3(1.f, 0.f, 0.f);
 
 class Boid {
 public:
@@ -54,15 +56,26 @@ public:
 	}
 
 	void draw(GLuint shaderProgram, GLuint modelLoc, const glm::mat4& view,
-		const glm::mat4& projection, GLuint viewLoc, GLuint projectionLoc) {
+		const glm::mat4& projection, GLuint viewLoc, GLuint projectionLoc)
+	{
 		glUseProgram(shaderProgram);
 
-		GLint inputColorLocation = glGetUniformLocation(shaderProgram, "inputColor");
-		glUniform3f(inputColorLocation, 0.7f, 0.7f, 0.7f);
+		GLint objectColorLoc = glGetUniformLocation(shaderProgram, "objectColor");
+		glUniform3f(objectColorLoc, 0.7f, 0.7f, 0.7f);
+
+		GLint lightPosLoc = glGetUniformLocation(shaderProgram, "lightPos");
+		glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightPos));
+
+		GLint viewPosLoc = glGetUniformLocation(shaderProgram, "viewPos");
+		glUniform3fv(viewPosLoc, 1, glm::value_ptr(cameraPos));
+
+		GLint lightColorLoc = glGetUniformLocation(shaderProgram, "lightColor");
+		glUniform3fv(lightColorLoc, 1, glm::value_ptr(lightColor));
 
 		glm::mat4 rotationMatrix = getRotationMatrixFromVelocity(velocity);
-
-		glm::mat4 model = glm::translate(glm::mat4(1.0f), position) * rotationMatrix * glm::scale(glm::mat4(1.0f), scale);
+		glm::mat4 model = glm::translate(glm::mat4(1.0f), position) *
+			rotationMatrix *
+			glm::scale(glm::mat4(1.0f), scale);
 
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
@@ -72,7 +85,6 @@ public:
 
 		glUseProgram(0);
 	}
-
 private:
 	glm::mat4 getRotationMatrixFromVelocity(const glm::vec3& velocity) {
 		glm::vec3 forward = glm::vec3(0.0f, -1.0f, 0.0f);
@@ -466,11 +478,6 @@ Core::RenderContext shipContext;
 Core::RenderContext birdContext;
 Core::RenderContext treeContext;
 
-glm::vec3 spaceshipPos = glm::vec3(-15.f, 0, 0);
-glm::vec3 spaceshipDir = glm::vec3(1.f, 0.f, 0.f);
-glm::vec3 cameraPos = glm::vec3(0, 0, 1.0f);
-glm::vec3 cameraDir = glm::vec3(1.0f, 0.0f, 0.0f);
-
 GLuint VAO, VBO;
 
 float aspectRatio = 1.f;
@@ -478,7 +485,9 @@ float aspectRatio = 1.f;
 GLuint boidVAO, boidVBO;
 GLuint boundingBoxVAO, boundingBoxVBO, boundingBoxEBO;
 
-GLuint boidShader, boundBoxShader, terrainShader;
+GLuint boidShader, basicBoidShader, boundBoxShader, terrainShader;
+GLuint activeBoidShader; 
+
 Flock flock;
 
 GLuint modelLoc;
@@ -522,7 +531,6 @@ glm::mat4 createPerspectiveMatrix()
 	return perspectiveMatrix;
 }
 
-
 void drawObjectColor(Core::RenderContext& context, glm::mat4 modelMatrix, glm::vec3 color) {
 
 	glUseProgram(program);
@@ -535,7 +543,6 @@ void drawObjectColor(Core::RenderContext& context, glm::mat4 modelMatrix, glm::v
 	Core::DrawContext(context);
 
 }
-
 
 void drawObjectTexture(Core::RenderContext& context, glm::mat4 modelMatrix, GLuint textureID) {
 	glUseProgram(programTex);
@@ -559,14 +566,14 @@ void renderScene(GLFWwindow* window)
 	glm::mat4 view = createCameraMatrix();
 
 	drawBoundingBox(view, projection, boundBoxShader, boundingBoxVAO);
-	flock.draw(boidShader, modelLoc, view, projection, viewLoc, projectionLoc);
+	flock.draw(activeBoidShader, modelLoc, view, projection, viewLoc, projectionLoc);
 
 	if (terrain)
 		terrain->render(terrainShader, projection, view, glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -10.f, 0.0f)));
 
-	glm::mat4 treeModelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(2.5f));
-	treeModelMatrix = glm::translate(treeModelMatrix, glm::vec3(0.0f, -4.0f, 0.0f));
-	drawObjectColor(treeContext, treeModelMatrix, glm::vec3(1.0f, 1.0f, 1.0f));
+	//glm::mat4 treeModelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(2.5f));
+	//treeModelMatrix = glm::translate(treeModelMatrix, glm::vec3(0.0f, -4.0f, 0.0f));
+	//drawObjectColor(treeContext, treeModelMatrix, glm::vec3(1.0f, 1.0f, 1.0f));
 
 	drawSliderWidget(&simulationParams);
 
@@ -574,16 +581,23 @@ void renderScene(GLFWwindow* window)
 	glfwSwapBuffers(window);
 }
 
-
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
 	aspectRatio = width / float(height);
 	glViewport(0, 0, width, height);
 }
+
 void loadModelToContext(std::string path, Core::RenderContext& context)
 {
 	Assimp::Importer import;
-	const aiScene* scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_CalcTangentSpace);
+	const aiScene* scene = import.ReadFile(path,
+		aiProcess_Triangulate |
+		aiProcess_CalcTangentSpace |
+		aiProcess_JoinIdenticalVertices |
+		aiProcess_GenSmoothNormals |
+		aiProcess_ImproveCacheLocality |
+		aiProcess_RemoveRedundantMaterials |
+		aiProcess_OptimizeMeshes);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{
@@ -610,9 +624,12 @@ void init(GLFWwindow* window)
 	setupBoundingBox(boundingBoxVAO, boundingBoxVBO, boundingBoxEBO);
 	terrain = new ProceduralTerrain(150.0f, 50);
 
-	boidShader = shaderLoader.CreateProgram("shaders/boid.vert", "shaders/boid.frag");
+	boidShader = shaderLoader.CreateProgram("shaders/boid.vert", "shaders/boid.frag");\
+	basicBoidShader = shaderLoader.CreateProgram("shaders/boid_basic.vert", "shaders/boid_basic.frag");
 	boundBoxShader = shaderLoader.CreateProgram("shaders/line.vert", "shaders/line.frag");
 	terrainShader = shaderLoader.CreateProgram("shaders/terrain.vert", "shaders/terrain.frag");
+
+	activeBoidShader = boidShader;
 
 	modelLoc = glGetUniformLocation(boidShader, "model");
 	viewLoc = glGetUniformLocation(boidShader, "view");
@@ -639,8 +656,8 @@ void shutdown(GLFWwindow* window)
 
 void processInput(GLFWwindow* window)
 {
-	glm::vec3 spaceshipSide = glm::normalize(glm::cross(spaceshipDir, glm::vec3(0.f, 1.f, 0.f)));
-	glm::vec3 spaceshipUp = glm::vec3(0.f, 1.f, 0.f);
+	glm::vec3 cameraSide = glm::normalize(glm::cross(cameraDir, glm::vec3(0.f, 1.f, 0.f)));
+	glm::vec3 cameraUp = glm::vec3(0.f, 1.f, 0.f);
 	float angleSpeed = 0.075f;
 	float moveSpeed = 0.1f;
 
@@ -648,21 +665,21 @@ void processInput(GLFWwindow* window)
 		glfwSetWindowShouldClose(window, true);
 	}
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		spaceshipPos += spaceshipDir * moveSpeed;
+		cameraPos += cameraDir * moveSpeed;
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		spaceshipPos -= spaceshipDir * moveSpeed;
+		cameraPos -= cameraDir * moveSpeed;
 	if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
-		spaceshipPos += spaceshipSide * moveSpeed;
+		cameraPos += cameraSide * moveSpeed;
 	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
-		spaceshipPos -= spaceshipSide * moveSpeed;
+		cameraPos -= cameraSide * moveSpeed;
 	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-		spaceshipPos += spaceshipUp * moveSpeed;
+		cameraPos += cameraUp * moveSpeed;
 	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-		spaceshipPos -= spaceshipUp * moveSpeed;
+		cameraPos -= cameraUp * moveSpeed;
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		spaceshipDir = glm::vec3(glm::eulerAngleY(angleSpeed) * glm::vec4(spaceshipDir, 0));
+		cameraDir = glm::vec3(glm::eulerAngleY(angleSpeed) * glm::vec4(cameraDir, 0));
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		spaceshipDir = glm::vec3(glm::eulerAngleY(-angleSpeed) * glm::vec4(spaceshipDir, 0));
+		cameraDir = glm::vec3(glm::eulerAngleY(-angleSpeed) * glm::vec4(cameraDir, 0));
 
 	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
 		key1WasPressed = true;
@@ -674,12 +691,20 @@ void processInput(GLFWwindow* window)
 		}
 	}
 
+	if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
+		if (!key2WasPressed) {
+			activeBoidShader = (activeBoidShader == boidShader) ? basicBoidShader : boidShader;
 
-	cameraPos = spaceshipPos + spaceshipDir;
-	cameraDir = spaceshipDir;
+			modelLoc = glGetUniformLocation(activeBoidShader, "model");
+			viewLoc = glGetUniformLocation(activeBoidShader, "view");
+			projectionLoc = glGetUniformLocation(activeBoidShader, "projection");
 
-	//cameraDir = glm::normalize(-cameraPos);
-
+			key2WasPressed = true;
+		}
+	}
+	else {
+		key2WasPressed = false;
+	}
 }
 
 void renderLoop(GLFWwindow* window) {
