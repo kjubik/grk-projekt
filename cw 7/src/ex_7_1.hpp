@@ -19,7 +19,7 @@
 
 #include "boids/simulation.h"
 #include "boids/vertices.h"
-#include "boids/terrain.h"
+#include "boids/Terrain.h"
 #include "boids/Boid.h"
 #include "utils.h"
 
