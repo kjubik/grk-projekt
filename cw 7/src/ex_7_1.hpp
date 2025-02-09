@@ -33,6 +33,7 @@ SimulationParams simulationParams;
 glm::vec3 cameraPos = glm::vec3(-15.f, 0, 0);
 glm::vec3 cameraDir = glm::vec3(1.f, 0.f, 0.f);
 GLuint boidTextureID;
+GLuint gradientTextures[10];
 
 class Boid {
 public:
@@ -40,12 +41,13 @@ public:
 	glm::vec3 velocity;
 	glm::vec3 scale;
 	Core::RenderContext modelContext;
+	GLuint textureID;
 
 	static constexpr float MAX_SPEED = 2.0f;
 	static constexpr float MIN_SPEED = 0.2f;
 
-	Boid(glm::vec3 pos, glm::vec3 vel, const Core::RenderContext& context, glm::vec3 scl = glm::vec3(1.0f))
-		: position(pos), velocity(vel), modelContext(context), scale(scl) {
+	Boid(glm::vec3 pos, glm::vec3 vel, const Core::RenderContext& context, glm::vec3 scl = glm::vec3(1.0f), GLuint texID = -1)
+		: position(pos), velocity(vel), modelContext(context), scale(scl), textureID(texID) {
 	}
 
 	void update(float deltaTime, const glm::vec3& acceleration) {
@@ -60,7 +62,7 @@ public:
 		const glm::mat4& projection, GLuint viewLoc, GLuint projectionLoc)
 	{
 		glUseProgram(shaderProgram);
-		Core::SetActiveTexture(boidTextureID, "boidTexture", shaderProgram, 0);
+		Core::SetActiveTexture(textureID, "boidTexture", shaderProgram, 0);
 
 		GLint objectColorLoc = glGetUniformLocation(shaderProgram, "objectColor");
 		glUniform3f(objectColorLoc, 0.7f, 0.7f, 0.7f);
@@ -170,7 +172,9 @@ public:
 				static_cast<float>(std::rand()) / RAND_MAX * 2.0f - 1.0f
 			)) * (static_cast<float>(std::rand()) / RAND_MAX * 2.0f);
 
-			boids.emplace_back(position, velocity, modelContext, glm::vec3(simulationParams.boidModelScale));
+			GLuint randomTextureID = gradientTextures[rand() % 10];
+
+			boids.emplace_back(position, velocity, modelContext, glm::vec3(simulationParams.boidModelScale), randomTextureID);
 		}
 	}
 
@@ -622,13 +626,16 @@ void init(GLFWwindow* window)
 	loadModelToContext("./models/bird.objj", birdContext);
 	loadModelToContext("./models/tree.objj", treeContext);
 
+	for (int i = 0; i < 10; ++i) {
+		std::string texturePath = "textures/gradient_" + std::to_string(i+1) + ".png";
+		gradientTextures[i] = Core::LoadTexture(texturePath.c_str());
+	}
+
 	setupBoidVAOandVBO(boidVAO, boidVBO, boidVertices, sizeof(boidVertices));
 	setupBoundingBox(boundingBoxVAO, boundingBoxVBO, boundingBoxEBO);
 	terrain = new ProceduralTerrain(150.0f, 50);
 
-	boidTextureID = Core::LoadTexture("textures/bird.png");
-
-	boidShader = shaderLoader.CreateProgram("shaders/boid.vert", "shaders/boid.frag");\
+	boidShader = shaderLoader.CreateProgram("shaders/boid.vert", "shaders/boid.frag");
 	basicBoidShader = shaderLoader.CreateProgram("shaders/boid_basic.vert", "shaders/boid_basic.frag");
 	boundBoxShader = shaderLoader.CreateProgram("shaders/line.vert", "shaders/line.frag");
 	terrainShader = shaderLoader.CreateProgram("shaders/terrain.vert", "shaders/terrain.frag");
