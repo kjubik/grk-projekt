@@ -175,5 +175,11 @@
     <None Include="shaders\boid_basic.vert">
       <Filter>Shader Files</Filter>
     </None>
+    <None Include="shadowMap.vert">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="shadowMap.frag">
+      <Filter>Shader Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -5,6 +5,7 @@ float AMBIENT = 0.1;
 uniform vec3 color;
 uniform vec3 lightPos;
 uniform sampler2D colorTexture;
+uniform mat4 lightSpaceMatrix;
 
 in vec3 vecNormal;
 in vec3 worldPos;

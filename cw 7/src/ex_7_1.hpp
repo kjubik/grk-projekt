@@ -97,6 +97,8 @@ GLuint programSun;
 GLuint programTex;
 GLuint programEarth;
 GLuint programProcTex;
+GLuint programShadowMapping;
+
 Core::Shader_Loader shaderLoader;
 
 Core::RenderContext shipContext;
@@ -122,6 +124,10 @@ GLuint projectionLoc;
 
 GLuint terrainProjectionLoc, terrainViewLoc, terrainModelLoc, terrainColorLoc;
 GLuint terrainTexture;
+
+GLuint depthMapFBO;
+GLuint depthMap;
+const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 
 glm::mat4 createCameraMatrix()
 {
@@ -181,6 +187,7 @@ void drawObjectTexture(Core::RenderContext& context, glm::mat4 modelMatrix, GLui
 	Core::SetActiveTexture(textureID, "colorTexture", programTex, 0);
 	Core::DrawContext(context);
 }
+
 
 void renderScene(GLFWwindow* window)
 {
@@ -243,6 +250,7 @@ void init(GLFWwindow* window)
 	programTex = shaderLoader.CreateProgram("shaders/shader_5_1_tex.vert", "shaders/shader_5_1_tex.frag");
 	programEarth = shaderLoader.CreateProgram("shaders/shader_5_1_tex.vert", "shaders/shader_5_1_tex.frag");
 	programProcTex = shaderLoader.CreateProgram("shaders/shader_5_1_tex.vert", "shaders/shader_5_1_tex.frag");
+	programShadowMapping = shaderLoader.CreateProgram("shaders/shadowMap.vert", "shaders/shadowMap.frag");
 
 	loadModelToContext("./models/bird.objj", birdContext);
 	loadModelToContext("./models/tree.objj", treeContext);
@@ -283,6 +291,63 @@ void init(GLFWwindow* window)
 
 	flock = Flock(&simulationParams, terrain, birdContext, gradientTextures);
 }
+
+void initShadowMapping() {
+	glGenFramebuffers(1, &depthMapFBO);
+
+	glGenTextures(1, &depthMap);
+	glBindTexture(GL_TEXTURE_2D, depthMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	GLfloat borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+glm::mat4 getLightSpaceMatrix() {
+
+	glm::vec3 lightPos = glm::vec3(10.0f, 20.0f, 10.0f);
+
+	glm::mat4 orthogonalProjection = glm::ortho(-20.0f, 20.0f, -20.0f, 20.0f, 1.0f, 50.0f);
+	glm::mat4 lightView = glm::lookAt(20.0f * lightPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+	return orthogonalProjection * lightView;
+}
+
+void drawObjectsForShadowMap(Core::RenderContext& context) {
+	glUseProgram(programShadowMapping);
+	glm::mat4 modelMatrix = glm::mat4(1.0f);
+	glm::mat4 viewProjectionMatrix = getLightSpaceMatrix();
+	glUniformMatrix4fv(glGetUniformLocation(programShadowMapping, "transformation"), 1, GL_FALSE, &viewProjectionMatrix[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(programShadowMapping, "modelMatrix"), 1, GL_FALSE, &modelMatrix[0][0]);
+	glUniform3f(glGetUniformLocation(programShadowMapping, "lightPos"), 0.0f, 0.0f, 0.0f);
+	Core::DrawContext(context);
+}
+
+void renderShadowMap(Core::RenderContext& scene) {
+	glm::mat4 lightSpaceMatrix = getLightSpaceMatrix();
+
+	glUseProgram(programShadowMapping);
+	glUniformMatrix4fv(glGetUniformLocation(programShadowMapping, "lightSpaceMatrix"), 1, GL_FALSE, &lightSpaceMatrix[0][0]);
+
+	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	drawObjectsForShadowMap(scene);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(0, 0, 800, 600);
+}
+
 
 void shutdown(GLFWwindow* window)
 {
