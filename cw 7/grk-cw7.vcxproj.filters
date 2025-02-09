@@ -131,6 +131,9 @@
     <ClInclude Include="src\boids\Terrain.h">
       <Filter>Source Files\boids</Filter>
     </ClInclude>
+    <ClInclude Include="src\skybox\skybox.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\shader_5_sun.frag">
@@ -175,10 +178,10 @@
     <None Include="shaders\boid_basic.vert">
       <Filter>Shader Files</Filter>
     </None>
-    <None Include="skybox.frag">
+    <None Include="shaders\skybox.frag">
       <Filter>Shader Files</Filter>
     </None>
-    <None Include="skybox.vert">
+    <None Include="shaders\skybox.vert">
       <Filter>Shader Files</Filter>
     </None>
   </ItemGroup>

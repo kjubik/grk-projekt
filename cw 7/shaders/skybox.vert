@@ -1,13 +1,13 @@
-#version 430 core
+#version 330 core
+layout (location = 0) in vec3 aPos;
 
-layout(location = 0) in vec3 vertexPosition;
+uniform mat4 viewProjection;
 
-uniform mat4 transformation;
-
-out vec3 texCoord;
+out vec3 TexCoords;
 
 void main()
 {
-	texCoord = vertexPosition;
-	gl_Position = transformation * vec4(vertexPosition, 1.0);
+    TexCoords = aPos;
+    vec4 pos = viewProjection * vec4(aPos, 1.0);
+    gl_Position = pos.xyww; // This ensures skybox is always at maximum depth
 }
