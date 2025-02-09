@@ -125,6 +125,12 @@
     <ClInclude Include="src\boids\simulation.h">
       <Filter>Source Files\boids</Filter>
     </ClInclude>
+    <ClInclude Include="src\boids\Boid.h">
+      <Filter>Source Files\boids</Filter>
+    </ClInclude>
+    <ClInclude Include="src\boids\Terrain.h">
+      <Filter>Source Files\boids</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\shader_5_sun.frag">
