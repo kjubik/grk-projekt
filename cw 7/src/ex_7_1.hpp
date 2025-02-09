@@ -128,7 +128,7 @@ GLuint viewLoc;
 GLuint projectionLoc;
 
 GLuint terrainProjectionLoc, terrainViewLoc, terrainModelLoc, terrainColorLoc;
-GLuint terrainTexture;
+GLuint terrainTexture, terrainNormal;
 
 GLuint skyboxTexture;
 GLuint skyboxShader;
@@ -265,7 +265,7 @@ void renderScene(GLFWwindow* window)
 	flock.draw(activeBoidShader, modelLoc, view, projection, viewLoc, projectionLoc, cameraPos);
 
 	if (terrain)
-		terrain->render(terrainShader, projection, view, glm::mat4(1.0f), terrainTexture);
+		terrain->render(terrainShader, projection, view, glm::mat4(1.0f), terrainTexture, terrainNormal, cameraPos, lightPos);
 
 	//glm::mat4 treeModelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(2.5f));
 	//treeModelMatrix = glm::translate(treeModelMatrix, glm::vec3(0.0f, -4.0f, 0.0f));
@@ -324,7 +324,8 @@ void init(GLFWwindow* window)
 		gradientTextures[i] = Core::LoadTexture(texturePath.c_str());
 	}
 
-	terrainTexture = Core::LoadTexture("textures/terrain/grass.jpg");
+	terrainTexture = Core::LoadTexture("textures/terrain/grass3.jpg");
+	terrainNormal = Core::LoadTexture("textures/terrain/normal.jpg");
 
 	setupBoidVAOandVBO(boidVAO, boidVBO, boidVertices, sizeof(boidVertices));
 	setupBoundingBox(boundingBoxVAO, boundingBoxVBO, boundingBoxEBO);
