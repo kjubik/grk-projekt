@@ -86,19 +86,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	cameraDir = glm::normalize(direction);
 }
 
-namespace texture {
-	GLuint earth;
-	GLuint clouds;
-	GLuint moon;
-	GLuint ship;
-
-	GLuint grid;
-
-	GLuint earthNormal;
-	GLuint asteroidNormal;
-	GLuint shipNormal;
-}
-
 GLuint program;
 GLuint programSun;
 GLuint programTex;
@@ -109,8 +96,6 @@ Core::Shader_Loader shaderLoader;
 Core::RenderContext shipContext;
 Core::RenderContext birdContext;
 Core::RenderContext treeContext;
-
-GLuint VAO, VBO;
 
 float aspectRatio = 1.f;
 
@@ -352,10 +337,6 @@ void init(GLFWwindow* window)
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
 	glEnable(GL_DEPTH_TEST);
-	program = shaderLoader.CreateProgram("shaders/shader_5_1.vert", "shaders/shader_5_1.frag");
-	programTex = shaderLoader.CreateProgram("shaders/shader_5_1_tex.vert", "shaders/shader_5_1_tex.frag");
-	programEarth = shaderLoader.CreateProgram("shaders/shader_5_1_tex.vert", "shaders/shader_5_1_tex.frag");
-	programProcTex = shaderLoader.CreateProgram("shaders/shader_5_1_tex.vert", "shaders/shader_5_1_tex.frag");
 
 	loadModelToContext("./models/bird.objj", birdContext);
 	loadModelToContext("./models/tree.objj", treeContext);

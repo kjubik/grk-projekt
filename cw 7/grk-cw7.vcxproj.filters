@@ -136,24 +136,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\shader_5_sun.frag">
-      <Filter>Shader Files</Filter>
-    </None>
-    <None Include="shaders\shader_5_sun.vert">
-      <Filter>Shader Files</Filter>
-    </None>
-    <None Include="shaders\shader_5_1.frag">
-      <Filter>Shader Files</Filter>
-    </None>
-    <None Include="shaders\shader_5_1.vert">
-      <Filter>Shader Files</Filter>
-    </None>
-    <None Include="shaders\shader_5_1_tex.vert">
-      <Filter>Shader Files</Filter>
-    </None>
-    <None Include="shaders\shader_5_1_tex.frag">
-      <Filter>Shader Files</Filter>
-    </None>
     <None Include="shaders\boid.frag">
       <Filter>Shader Files</Filter>
     </None>

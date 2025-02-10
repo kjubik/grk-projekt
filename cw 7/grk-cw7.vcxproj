@@ -58,12 +58,6 @@
     <None Include="shaders\depth_shader.vert" />
     <None Include="shaders\line.frag" />
     <None Include="shaders\line.vert" />
-    <None Include="shaders\shader_5_1.frag" />
-    <None Include="shaders\shader_5_1.vert" />
-    <None Include="shaders\shader_5_1_tex.frag" />
-    <None Include="shaders\shader_5_1_tex.vert" />
-    <None Include="shaders\shader_5_sun.frag" />
-    <None Include="shaders\shader_5_sun.vert" />
     <None Include="shaders\skybox.frag" />
     <None Include="shaders\skybox.vert" />
     <None Include="shaders\terrain.frag" />
