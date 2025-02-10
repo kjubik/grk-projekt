@@ -41,8 +41,8 @@ Poniżej wymienione zostały natrudniejsze problemy z jakimi zmagaliśmy się po
 Cały teren posiadał paski równoległych cieni. Dobranie odpowiednich wartości przy wyliczanu bias wewnątrz shadera rozwiązało problem, wyznaczjąc dolny limit, od którego cienie są nakładane.
 ### Całkowite zacieniowanie terenu położonego daleko od źródła światła
 Teren położny w odległości większej od pewnej wartości początkowo zacieniowany był całości. Odpowiednie zwięszkenie parametrów rzutu ortogonalnego pomogło rozszerzyć obszar bazy ortogonalnej, co rozwiązało problem.
-### Połączenie siatki terenu z heightmapą
-Połączenie siatki terenu z wygenerowaną heightmapą stworzoną przy użyciu szumu Perlina okazało się implementacyjnie trudne do wykonania. Wymagało dokładniejszego zgłębienia możliwych rozwiązań w języku C++.
+### Poprawna translacja siatki terenu wraz z atrybutami wierzchołków
+Implementacja poprawnego umiejscowienia naszego proceduralnego terenu okazała się wymagająca ze względu na konieczność zachowania spójności atrybutów wierzchołków, takich jak normalne i współrzędne UV. Odpowiednie operacje na tych danych umożliwiły stworzenie metody translacji terenu o wektor z zachowaniem poprawnych wartości atrybutów wierzchołków.
 ## Wnioski końcowe
 Podczas pracy nad projektem i w trakcie całego semestru zdobyliśmy cenne doświadczenie w implementacji animacji trójwymiarowych. Zrozumieliśmy, jak wymagające jest tworzenie nawet prostych scen – wymaga to zarówno solidnej wiedzy matematycznej, jak i umiejętności programowania w C++. Ten projekt pozwolił nam lepiej docenić wysoką jakość współczesnych metod grafiki komputerowej.
 
