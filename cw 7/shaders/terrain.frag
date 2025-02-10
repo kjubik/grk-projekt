@@ -39,11 +39,7 @@ float ShadowCalculation(vec4 fragPosLightSpace) {
             shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
         }
     }
-    shadow /= 9.0;  // Average the samples for soft edges
-
-    // Avoid shadowing outside the light frustum
-    if (projCoords.z > 1.0)
-        shadow = 0.0;
+    shadow /= 9.0;
 
     return shadow;
 }
