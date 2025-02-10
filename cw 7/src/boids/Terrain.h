@@ -95,8 +95,8 @@ public:
 		bitangents.clear();
 		normals.clear();
 
-		float frequency = .1f;
-		float heightScale = 10.0f;
+		float frequency = .05f;
+		float heightScale = 30.0f;
 		heightMap.resize(resolution + 1, std::vector<float>(resolution + 1));
 
 		for (int z = 0; z <= resolution; ++z) {
