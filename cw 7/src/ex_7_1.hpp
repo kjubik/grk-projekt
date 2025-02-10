@@ -103,8 +103,9 @@ ProceduralTerrain* terrain;
 GLuint boidVAO, boidVBO;
 GLuint boundingBoxVAO, boundingBoxVBO, boundingBoxEBO;
 
-GLuint boidShader, basicBoidShader, boundBoxShader, terrainShader, depthShader;
+GLuint boidShader, basicBoidShader, boundBoxShader, terrainShader, basicTerrainShader, depthShader;
 GLuint activeBoidShader; 
+GLuint activeTerrainShader;
 
 Flock flock;
 
@@ -298,7 +299,7 @@ void renderScene(GLFWwindow* window)
 	flock.draw(activeBoidShader, modelLoc, view, projection, viewLoc, projectionLoc, cameraPos);
 
 	if (terrain)
-		terrain->render(terrainShader, projection, view, glm::mat4(1.0f), terrainTexture, terrainNormal, depthMap, cameraPos, lightPos, lightSpaceMatrix);
+		terrain->render(activeTerrainShader, projection, view, glm::mat4(1.0f), terrainTexture, terrainNormal, depthMap, cameraPos, lightPos, lightSpaceMatrix);
 
 	drawSliderWidget(&simulationParams);
 
@@ -362,11 +363,16 @@ void init(GLFWwindow* window)
 
 	boidShader = shaderLoader.CreateProgram("shaders/boid.vert", "shaders/boid.frag");
 	basicBoidShader = shaderLoader.CreateProgram("shaders/boid_basic.vert", "shaders/boid_basic.frag");
+
 	boundBoxShader = shaderLoader.CreateProgram("shaders/line.vert", "shaders/line.frag");
+
 	terrainShader = shaderLoader.CreateProgram("shaders/terrain.vert", "shaders/terrain.frag");
+	basicTerrainShader = shaderLoader.CreateProgram("shaders/terrain_basic.vert", "shaders/terrain_basic.frag");
+
 	depthShader = shaderLoader.CreateProgram("shaders/depth_shader.vert", "shaders/depth_shader.frag");
 
 	activeBoidShader = boidShader;
+	activeTerrainShader = terrainShader;
 
 	modelLoc = glGetUniformLocation(boidShader, "model");
 	viewLoc = glGetUniformLocation(boidShader, "view");
@@ -418,13 +424,19 @@ void processInput(GLFWwindow* window)
 		cameraPos -= cameraUp * moveSpeed;
 
 	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
-		key1WasPressed = true;
+		if (!key1WasPressed) {
+			activeTerrainShader = (activeTerrainShader == terrainShader) ? basicTerrainShader : terrainShader;
+
+			terrainProjectionLoc = glGetUniformLocation(activeTerrainShader, "projection");
+			terrainViewLoc = glGetUniformLocation(activeTerrainShader, "view");
+			terrainModelLoc = glGetUniformLocation(activeTerrainShader, "model");
+			terrainColorLoc = glGetUniformLocation(activeTerrainShader, "objectColor");
+
+			key1WasPressed = true;
+		}
 	}
 	else {
-		if (key1WasPressed) {
-			terrain->wireframeOnlyView = !terrain->wireframeOnlyView;
-			key1WasPressed = false;
-		}
+		key1WasPressed = false;
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {

@@ -172,5 +172,11 @@
     <None Include="shaders\depth_shader.vert">
       <Filter>Shader Files</Filter>
     </None>
+    <None Include="shaders\terrain_basic.frag">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="shaders\terrain_basic.vert">
+      <Filter>Shader Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
