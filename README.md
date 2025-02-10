@@ -7,8 +7,8 @@ Koniecznie podlinkować konkretne pliki/foldery z repozytorium
 - [Symulacja ptaków](https://github.com/kjubik/grk-projekt/blob/dev/cw%207/src/boids/Boid.h) – Algorytm Boids
 - [Proceduralne generowanie terenu](https://github.com/kjubik/grk-projekt/blob/dev/cw%207/src/boids/Terrain.h) – Szum Perlina
 - [Detekcja kolizji między ptakami, a terenem](https://github.com/kjubik/grk-projekt/blob/dev/cw%207/src/boids/Boid.h#L113) – Axis-Aligned Bounding Boxes
-- [Shadow mapping](https://github.com/kjubik/grk-projekt/tree/dev/cw%207/shaders) - Transformacja do przestrzeni światła
-- [Normal mapping](https://github.com/kjubik/grk-projekt/tree/dev/cw%207/shaders) - Mapowanie normalnych
+- [Shadow mapping](https://github.com/kjubik/grk-projekt/tree/dev/cw%207/shaders) - Percentage Closer Filtering 
+- [Normal mapping](https://github.com/kjubik/grk-projekt/tree/dev/cw%207/shaders) - Tekstura z normalną 
 
 ## Dodatkowe funkcje
 ### Model Boid’a
