@@ -8,10 +8,12 @@ layout (location = 4) in vec3 aBitangent;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform mat4 lightSpaceMatrix; // New: Matrix to transform to light's space
 
 out vec2 TexCoords;
-out vec3 FragPos;  
+out vec3 FragPos;
 out mat3 TBN;
+out vec4 LightSpacePos; // New: Output for light-space position
 
 void main()
 {
@@ -22,6 +24,8 @@ void main()
     vec3 B = normalize(mat3(model) * aBitangent);
     vec3 N = normalize(mat3(model) * aNormal);
     TBN = mat3(T, B, N);
+
+    LightSpacePos = lightSpaceMatrix * vec4(FragPos, 1.0); // Calculate and pass light-space position
 
     gl_Position = projection * view * vec4(FragPos, 1.0);
 }
