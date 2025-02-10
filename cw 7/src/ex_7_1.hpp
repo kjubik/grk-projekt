@@ -114,7 +114,7 @@ Core::RenderContext treeContext;
 
 GLuint VAO, VBO;
 
-float aspectRatio = 1.f;
+float aspectRatio = 1.5f;
 
 ProceduralTerrain* terrain;
 GLuint boidVAO, boidVBO;
@@ -382,7 +382,7 @@ void init(GLFWwindow* window)
 	setupBoundingBox(boundingBoxVAO, boundingBoxVBO, boundingBoxEBO);
 
 	terrain = new ProceduralTerrain(150.0f, 100);
-	terrain->translateTerrain(glm::vec3(0.0f, -14.0f, 0.0f));
+	terrain->translateTerrain(glm::vec3(0.0f, -22.0f, 0.0f));
 
 	boidShader = shaderLoader.CreateProgram("shaders/boid.vert", "shaders/boid.frag");
 	basicBoidShader = shaderLoader.CreateProgram("shaders/boid_basic.vert", "shaders/boid_basic.frag");
