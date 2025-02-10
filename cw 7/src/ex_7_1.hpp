@@ -291,7 +291,7 @@ void captureShadowDepth(GLFWwindow* window) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	int width, height;
-	glfwGetFramebufferSize(window, &width, &height); // Or similar function for your windowing system
+	glfwGetFramebufferSize(window, &width, &height);
 	glViewport(0, 0, width, height);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
