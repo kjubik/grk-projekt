@@ -31,7 +31,9 @@
 bool wireframeOnlyView = false;
 bool key1WasPressed = false;
 bool key2WasPressed = false;
+bool key3WasPressed = false;
 bool cursorEnabled = false;
+bool showBoundingBox = false;
 
 SimulationParams simulationParams;
 
@@ -310,7 +312,9 @@ void renderScene(GLFWwindow* window)
 	captureShadowDepth(window);
 	drawSkybox();
 
-	drawBoundingBox(view, projection, boundBoxShader, boundingBoxVAO);
+	if (showBoundingBox)
+		drawBoundingBox(view, projection, boundBoxShader, boundingBoxVAO);
+	
 	flock.draw(activeBoidShader, modelLoc, view, projection, viewLoc, projectionLoc, cameraPos);
 
 	if (terrain)
@@ -473,6 +477,16 @@ void processInput(GLFWwindow* window)
 	}
 	else {
 		key2WasPressed = false;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
+		if (!key3WasPressed) {
+			showBoundingBox = !showBoundingBox;
+			key3WasPressed = true;
+		}
+	}
+	else {
+		key3WasPressed = false;
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
