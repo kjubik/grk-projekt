@@ -381,7 +381,7 @@ void init(GLFWwindow* window)
 	setupBoidVAOandVBO(boidVAO, boidVBO, boidVertices, sizeof(boidVertices));
 	setupBoundingBox(boundingBoxVAO, boundingBoxVBO, boundingBoxEBO);
 
-	terrain = new ProceduralTerrain(150.0f, 50);
+	terrain = new ProceduralTerrain(150.0f, 100);
 	terrain->translateTerrain(glm::vec3(0.0f, -14.0f, 0.0f));
 
 	boidShader = shaderLoader.CreateProgram("shaders/boid.vert", "shaders/boid.frag");
