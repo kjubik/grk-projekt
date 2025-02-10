@@ -222,32 +222,38 @@ public:
 		glBindVertexArray(0);
 	}
 
-	void render(GLuint shaderProgram, const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model, GLuint textureID, GLuint normalMapID, glm::vec3 cameraPos, glm::vec3 lightPos) {
+	void render(GLuint shaderProgram, const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model,
+		GLuint textureID, GLuint normalMapID, GLuint shadowMap,
+		glm::vec3 cameraPos, glm::vec3 lightPos, glm::mat4 lightSpaceMatrix)
+	{
 		glUseProgram(shaderProgram);
 
 		GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
 		GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
 		GLint modelLoc = glGetUniformLocation(shaderProgram, "model");
-
 		GLint lightPosLoc = glGetUniformLocation(shaderProgram, "lightPos");
 		GLint lightColLoc = glGetUniformLocation(shaderProgram, "lightColor");
 		GLint viewPosLoc = glGetUniformLocation(shaderProgram, "viewPos");
+		GLint lightSpaceLoc = glGetUniformLocation(shaderProgram, "lightSpaceMatrix");
 
 		glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightPos));
 		glUniform3fv(viewPosLoc, 1, glm::value_ptr(cameraPos));
-		glUniform3fv(lightColLoc, 1, glm::value_ptr(lightColor));
+		glUniform3fv(lightColLoc, 1, glm::value_ptr(glm::vec3(1.0f))); // White light color
 
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		glUniformMatrix4fv(lightSpaceLoc, 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
 
 		Core::SetActiveTexture(textureID, "terrainTexture", shaderProgram, 0);
 		Core::SetActiveTexture(normalMapID, "normalMap", shaderProgram, 1);
+		Core::SetActiveTexture(shadowMap, "shadowMap", shaderProgram, 2);
 
 		glBindVertexArray(terrainVAO);
 		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 	}
+
 
 	void translateTerrain(const glm::vec3& offset) {
 		for (size_t i = 0; i < vertices.size(); ++i) {

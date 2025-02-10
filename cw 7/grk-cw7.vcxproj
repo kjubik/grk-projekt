@@ -54,6 +54,8 @@
     <None Include="shaders\boid.vert" />
     <None Include="shaders\boid_basic.frag" />
     <None Include="shaders\boid_basic.vert" />
+    <None Include="shaders\depth_shader.frag" />
+    <None Include="shaders\depth_shader.vert" />
     <None Include="shaders\line.frag" />
     <None Include="shaders\line.vert" />
     <None Include="shaders\shader_5_1.frag" />

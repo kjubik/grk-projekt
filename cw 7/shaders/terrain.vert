@@ -8,15 +8,18 @@ layout (location = 4) in vec3 aBitangent;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform mat4 lightSpaceMatrix;
 
 out vec2 TexCoords;
-out vec3 FragPos;  
+out vec3 FragPos;
 out mat3 TBN;
+out vec4 FragPosLightSpace;
 
 void main()
 {
     FragPos = vec3(model * vec4(aPos, 1.0));
     TexCoords = aTexCoords;
+    FragPosLightSpace = lightSpaceMatrix * vec4(FragPos, 1.0);
 
     vec3 T = normalize(mat3(model) * aTangent);
     vec3 B = normalize(mat3(model) * aBitangent);
