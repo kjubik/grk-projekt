@@ -9,5 +9,5 @@ void main()
 {
     TexCoords = aPos;
     vec4 pos = viewProjection * vec4(aPos, 1.0);
-    gl_Position = pos.xyww; // This ensures skybox is always at maximum depth
+    gl_Position = pos.xyww;
 }
