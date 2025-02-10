@@ -9,7 +9,6 @@
 #include "ex_7_1.hpp"
 
 
-
 int main(int argc, char** argv)
 {
 	// inicjalizacja glfw
@@ -23,7 +22,7 @@ int main(int argc, char** argv)
 #endif
 
 	// tworzenie okna za pomoca glfw
-	GLFWwindow* window = glfwCreateWindow(500, 500, "FirstWindow", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(600, 600, "FirstWindow", NULL, NULL);
 	if (window == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
@@ -34,7 +33,7 @@ int main(int argc, char** argv)
 
 	// ladowanie OpenGL za pomoca glew
 	glewInit();
-	glViewport(0, 0, 500, 500);
+	glViewport(0, 0, 600, 600);
 
 	init(window);
 
