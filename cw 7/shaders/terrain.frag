@@ -28,7 +28,7 @@ float ShadowCalculation(vec4 fragPosLightSpace) {
     float currentDepth = projCoords.z;
 
     // Dynamic bias based on light angle to reduce shadow acne
-    float bias = max(0.002 * (1.0 - dot(normalize(TBN[2]), normalize(lightPos - FragPos))), 0.0005);
+    float bias = max(0.01 * (1.0 - dot(normalize(TBN[2]), normalize(lightPos - FragPos))), 0.0005);
 
     // Percentage Closer Filtering (PCF) for smooth shadows
     float shadow = 0.0;
