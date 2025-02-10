@@ -120,7 +120,7 @@ GLuint skyboxShader;
 Core::RenderContext skyboxCube;
 
 GLuint depthMapFBO, depthMap;
-const GLuint SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+const GLuint SHADOW_WIDTH = 1024 * 16, SHADOW_HEIGHT = 1024 * 16;
 
 glm::mat4 lightProjection;
 glm::mat4 lightView;
