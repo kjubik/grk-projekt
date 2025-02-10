@@ -274,7 +274,7 @@ void initShadowMap() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void captureShadowDepth() {
+void captureShadowDepth(GLFWwindow* window) {
 	lightProjection = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, 1.0f, 100.0f);
 	lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
 	lightSpaceMatrix = lightProjection * lightView;
@@ -290,7 +290,9 @@ void captureShadowDepth() {
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	glViewport(0, 0, 600, 600); // wypierdalaj z takim gównem
+	int width, height;
+	glfwGetFramebufferSize(window, &width, &height); // Or similar function for your windowing system
+	glViewport(0, 0, width, height);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
@@ -304,7 +306,7 @@ void renderScene(GLFWwindow* window)
 	glm::mat4 projection = createPerspectiveMatrix();
 	glm::mat4 view = createCameraMatrix();
 
-	captureShadowDepth();
+	captureShadowDepth(window);
 	drawSkybox();
 
 	drawBoundingBox(view, projection, boundBoxShader, boundingBoxVAO);
