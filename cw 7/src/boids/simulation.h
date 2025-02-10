@@ -5,7 +5,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-glm::vec3 lightPos(0.0f, 10.0f, 0.0f);
+glm::vec3 lightPos(-100.0f, 40.0f, 100.0f);
 glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
 
 struct SimulationParams {

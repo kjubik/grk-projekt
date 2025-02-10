@@ -118,7 +118,7 @@ ProceduralTerrain* terrain;
 GLuint boidVAO, boidVBO;
 GLuint boundingBoxVAO, boundingBoxVBO, boundingBoxEBO;
 
-GLuint boidShader, basicBoidShader, boundBoxShader, terrainShader;
+GLuint boidShader, basicBoidShader, boundBoxShader, terrainShader, depthShader;
 GLuint activeBoidShader; 
 
 Flock flock;
@@ -128,12 +128,18 @@ GLuint viewLoc;
 GLuint projectionLoc;
 
 GLuint terrainProjectionLoc, terrainViewLoc, terrainModelLoc, terrainColorLoc;
-GLuint terrainTexture;
+GLuint terrainTexture, terrainNormal;
 
 GLuint skyboxTexture;
 GLuint skyboxShader;
 Core::RenderContext skyboxCube;
 
+GLuint depthMapFBO, depthMap;
+const GLuint SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+
+glm::mat4 lightProjection;
+glm::mat4 lightView;
+glm::mat4 lightSpaceMatrix;
 
 std::vector<std::string> skyboxFaces = {
 	"./textures/skybox/clouds/clouds1_east.bmp",
@@ -248,28 +254,66 @@ void drawSkybox() {
 	glUseProgram(0);
 }
 
+void initShadowMap() {
+	glGenFramebuffers(1, &depthMapFBO);
+	glGenTextures(1, &depthMap);
+
+	glBindTexture(GL_TEXTURE_2D, depthMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+
+	float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void captureShadowDepth(GLFWwindow* window) {
+	glm::mat4 lightProjection = glm::ortho(-200.0f, 200.0f, -200.0f, 200.0f, 0.1f, 400.0f);
+	lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+	lightSpaceMatrix = lightProjection * lightView;
+
+	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	glUseProgram(depthShader);
+	glUniformMatrix4fv(glGetUniformLocation(depthShader, "lightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+
+	terrain->render(depthShader, lightProjection, lightView, glm::mat4(1.0f), 0, 0, 0, cameraPos, lightPos, lightSpaceMatrix);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	int width, height;
+	glfwGetFramebufferSize(window, &width, &height);
+	glViewport(0, 0, width, height);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
 
 void renderScene(GLFWwindow* window)
 {
 	glClearColor(0.1f, 0.3f, 0.6f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glm::mat4 transformation;
-	float time = glfwGetTime();
 
-	drawSkybox();
+	float time = glfwGetTime();
 
 	glm::mat4 projection = createPerspectiveMatrix();
 	glm::mat4 view = createCameraMatrix();
+
+	captureShadowDepth(window);
+	drawSkybox();
 
 	drawBoundingBox(view, projection, boundBoxShader, boundingBoxVAO);
 	flock.draw(activeBoidShader, modelLoc, view, projection, viewLoc, projectionLoc, cameraPos);
 
 	if (terrain)
-		terrain->render(terrainShader, projection, view, glm::mat4(1.0f), terrainTexture);
-
-	//glm::mat4 treeModelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(2.5f));
-	//treeModelMatrix = glm::translate(treeModelMatrix, glm::vec3(0.0f, -4.0f, 0.0f));
-	//drawObjectColor(treeContext, treeModelMatrix, glm::vec3(1.0f, 1.0f, 1.0f));
+		terrain->render(terrainShader, projection, view, glm::mat4(1.0f), terrainTexture, terrainNormal, depthMap, cameraPos, lightPos, lightSpaceMatrix);
 
 	drawSliderWidget(&simulationParams);
 
@@ -316,6 +360,8 @@ void init(GLFWwindow* window)
 	loadModelToContext("./models/bird.objj", birdContext);
 	loadModelToContext("./models/tree.objj", treeContext);
 
+	initShadowMap();
+
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -324,7 +370,8 @@ void init(GLFWwindow* window)
 		gradientTextures[i] = Core::LoadTexture(texturePath.c_str());
 	}
 
-	terrainTexture = Core::LoadTexture("textures/terrain/grass.jpg");
+	terrainTexture = Core::LoadTexture("textures/terrain/rocky.jpg");
+	terrainNormal = Core::LoadTexture("textures/terrain/normal.jpg");
 
 	setupBoidVAOandVBO(boidVAO, boidVBO, boidVertices, sizeof(boidVertices));
 	setupBoundingBox(boundingBoxVAO, boundingBoxVBO, boundingBoxEBO);
@@ -336,6 +383,7 @@ void init(GLFWwindow* window)
 	basicBoidShader = shaderLoader.CreateProgram("shaders/boid_basic.vert", "shaders/boid_basic.frag");
 	boundBoxShader = shaderLoader.CreateProgram("shaders/line.vert", "shaders/line.frag");
 	terrainShader = shaderLoader.CreateProgram("shaders/terrain.vert", "shaders/terrain.frag");
+	depthShader = shaderLoader.CreateProgram("shaders/depth_shader.vert", "shaders/depth_shader.frag");
 
 	activeBoidShader = boidShader;
 
