@@ -114,7 +114,7 @@ Core::RenderContext treeContext;
 
 GLuint VAO, VBO;
 
-float aspectRatio = 1.f;
+float aspectRatio = 1.5f;
 
 ProceduralTerrain* terrain;
 GLuint boidVAO, boidVBO;
