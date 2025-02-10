@@ -19,14 +19,31 @@ uniform float specularStrength = 0.5;
 uniform float shininess = 32.0;
 
 float ShadowCalculation(vec4 fragPosLightSpace) {
+    // Perspective divide to get normalized device coordinates (NDC)
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    projCoords = projCoords * 0.5 + 0.5;
+    projCoords = projCoords * 0.5 + 0.5;  // Transform from [-1,1] to [0,1]
 
+    // Read closest depth from shadow map
     float closestDepth = texture(shadowMap, projCoords.xy).r;
     float currentDepth = projCoords.z;
-    
-    float bias = max(0.05 * (1.0 - dot(normalize(TBN[2]), normalize(lightPos - FragPos))), 0.005);
-    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+
+    // Dynamic bias based on light angle to reduce shadow acne
+    float bias = max(0.002 * (1.0 - dot(normalize(TBN[2]), normalize(lightPos - FragPos))), 0.0005);
+
+    // Percentage Closer Filtering (PCF) for smooth shadows
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    for (int x = -1; x <= 1; ++x) {
+        for (int y = -1; y <= 1; ++y) {
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+        }
+    }
+    shadow /= 9.0;  // Average the samples for soft edges
+
+    // Avoid shadowing outside the light frustum
+    if (projCoords.z > 1.0)
+        shadow = 0.0;
 
     return shadow;
 }
