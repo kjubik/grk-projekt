@@ -148,6 +148,18 @@
       <AdditionalDependencies>opengl32.lib;freeglut.lib;$(SolutionDir)dependencies\glew-2.0.0\lib\glew32.lib;$(SolutionDir)\dependencies\glfw-3.3.8.bin.WIN32\lib-vc2019\glfw3.lib;$(SolutionDir)\dependencies\glfw-3.3.8.bin.WIN32\lib-vc2019\glfw3dll.lib;zlibd.lib;assimp-vc141-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)dependencies\glfw-3.3.8.bin.WIN32\lib-vc2019;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>mkdir "$(OutDir)models"
+mkdir "$(OutDir)shaders"
+mkdir "$(OutDir)textures" 
+
+xcopy "$(SolutionDir)cw 7\models" "$(OutDir)models" /E /Y
+xcopy "$(SolutionDir)cw 7\shaders" "$(OutDir)shaders" /E /Y
+xcopy "$(SolutionDir)cw 7\textures" "$(OutDir)textures" /E /Y
+copy "$(SolutionDir)assimp-vc141-mt.dll" "$(OutDir)assimp-vc141-mt.dll"
+copy "$(SolutionDir)assimp-vc141-mtd.dll" "$(OutDir)assimp-vc141-mtd.dll"
+copy "$(SolutionDir)glew32.dll" "$(OutDir)glew32.dll"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
