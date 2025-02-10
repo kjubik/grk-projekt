@@ -324,7 +324,7 @@ void init(GLFWwindow* window)
 		gradientTextures[i] = Core::LoadTexture(texturePath.c_str());
 	}
 
-	terrainTexture = Core::LoadTexture("textures/terrain/grass3.jpg");
+	terrainTexture = Core::LoadTexture("textures/terrain/rocky.jpg");
 	terrainNormal = Core::LoadTexture("textures/terrain/normal.jpg");
 
 	setupBoidVAOandVBO(boidVAO, boidVBO, boidVertices, sizeof(boidVertices));
