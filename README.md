@@ -2,8 +2,6 @@
 
 ## Opis użytych metod
 
-Koniecznie podlinkować konkretne pliki/foldery z repozytorium
-
 - [Symulacja ptaków](https://github.com/kjubik/grk-projekt/blob/dev/cw%207/src/boids/Boid.h) – Algorytm Boids
 - [Proceduralne generowanie terenu](https://github.com/kjubik/grk-projekt/blob/dev/cw%207/src/boids/Terrain.h) – Szum Perlina
 - [Detekcja kolizji między ptakami, a terenem](https://github.com/kjubik/grk-projekt/blob/dev/cw%207/src/boids/Boid.h#L113) – Axis-Aligned Bounding Boxes
