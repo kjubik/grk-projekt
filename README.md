@@ -1,5 +1,4 @@
 # Raport końcowy
-
 ## Opis użytych metod
 
 - [Symulacja ptaków](https://github.com/kjubik/grk-projekt/blob/dev/cw%207/src/boids/Boid.h) – Algorytm Boids
@@ -13,6 +12,15 @@
 Wykonany w Blenderze, eksportowany jako plik `.obj`.
 ### Proceduralnie generowany teren
 Oparty na szumu Perlina, generowany jednorazowo dla obszaru symulacji.
+
+## Sterowanie w symulacji
+- WASD: podstawowy ruch wzdłuż dwóch poziomych osi
+- Spacja: przesunięcie kamery w górę wzdłuż osi pionowej
+- Lewy Control: przesunięcie kamery w dół wzdłuż osi pionowej
+- Escape: Przełączenie widoczności kursora
+- 1: Przełączenie shaderów terenu (wył/wł. normal mapping oraz shadow mapping)
+- 2: Przełączenie shaderów boidów (wył/wł. światło oraz tekstury boidów)
+- 3: Przełączenie widoczności bounding boxa boidów
 
 ## Podział pracy
 ### Maja Cytrycka
